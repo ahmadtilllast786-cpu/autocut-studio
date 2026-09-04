@@ -249,31 +249,31 @@ export function RemotionPreviewPlayer({
 
   const isTransitioning = transitionProgress < 1 && activeClip?.transition !== 'none';
 
-  // Responsive Viewport sizing based on Aspect Ratio
+  // Responsive Viewport sizing strictly hard-locked to Aspect Ratio
   const getViewportAspectClass = () => {
     switch (currentRatio) {
       case '16:9':
-        return 'aspect-[16/9] max-w-[580px] max-h-[360px]';
+        return 'aspect-[16/9] max-h-full max-w-full';
       case '1:1':
-        return 'aspect-square max-w-[420px] max-h-[420px]';
+        return 'aspect-square max-h-full max-w-full';
       case '9:16':
       default:
-        return 'aspect-[9/16] max-w-[340px] max-h-[580px]';
+        return 'aspect-[9/16] max-h-full max-w-full';
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-between h-full bg-zinc-950/60 p-3 sm:p-4 gap-3">
+    <div className="flex flex-col items-center justify-between h-full w-full bg-[#0d0d0e] p-2 gap-2 overflow-hidden select-none">
       {/* Top Bar Controls */}
-      <div className="w-full flex items-center justify-between px-2 text-xs gap-2 flex-wrap">
+      <div className="w-full flex items-center justify-between px-1 text-xs gap-2 flex-wrap flex-shrink-0">
         {/* Multi-Aspect Ratio Switcher */}
-        <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-lg border border-zinc-800">
+        <div className="flex items-center gap-1 bg-[#121214] p-0.5 rounded-lg border border-[#27272a]">
           <button
             type="button"
             onClick={() => onAspectRatioChange?.('9:16')}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] font-bold transition cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold transition cursor-pointer ${
               currentRatio === '9:16'
-                ? 'bg-indigo-600 text-white shadow-sm'
+                ? 'bg-[#27272a] text-white border border-zinc-600'
                 : 'text-zinc-400 hover:text-white'
             }`}
             title="9:16 Vertical (TikTok, Reels, Shorts)"
@@ -285,9 +285,9 @@ export function RemotionPreviewPlayer({
           <button
             type="button"
             onClick={() => onAspectRatioChange?.('16:9')}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] font-bold transition cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold transition cursor-pointer ${
               currentRatio === '16:9'
-                ? 'bg-indigo-600 text-white shadow-sm'
+                ? 'bg-[#27272a] text-white border border-zinc-600'
                 : 'text-zinc-400 hover:text-white'
             }`}
             title="16:9 Landscape (YouTube, Desktop)"
@@ -299,9 +299,9 @@ export function RemotionPreviewPlayer({
           <button
             type="button"
             onClick={() => onAspectRatioChange?.('1:1')}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] font-bold transition cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold transition cursor-pointer ${
               currentRatio === '1:1'
-                ? 'bg-indigo-600 text-white shadow-sm'
+                ? 'bg-[#27272a] text-white border border-zinc-600'
                 : 'text-zinc-400 hover:text-white'
             }`}
             title="1:1 Square (Instagram Post, Square Feed)"
@@ -313,23 +313,23 @@ export function RemotionPreviewPlayer({
 
         {/* Ducking Indicator Badge */}
         {isCurrentlyDucking && (
-          <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-mono border border-purple-500/40 animate-pulse">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#18181b] text-zinc-300 text-[10px] font-mono border border-[#27272a]">
+            <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse" />
             Ducking -16dB
           </span>
         )}
 
-        {/* Subtitle Style & Safe Zone Toggles */}
+        {/* Safe Zone Toggle */}
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setShowSafeZone(!showSafeZone)}
             className={`p-1.5 rounded-md border text-[11px] transition cursor-pointer flex items-center gap-1 ${
               showSafeZone
-                ? 'bg-indigo-600 border-indigo-500 text-white'
-                : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
+                ? 'bg-[#27272a] border-zinc-600 text-white'
+                : 'bg-[#121214] border-[#27272a] text-zinc-400 hover:text-white'
             }`}
-            title="Toggle TikTok / Instagram Reels Safe Zone Overlay"
+            title="Toggle Safe Zone Guidelines"
           >
             {showSafeZone ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
             <span className="hidden sm:inline">Safe Zone</span>
@@ -337,11 +337,12 @@ export function RemotionPreviewPlayer({
         </div>
       </div>
 
-      {/* ADAPTIVE MULTI-ASPECT RATIO PLAYER VIEWPORT */}
-      <div
-        ref={viewportRef}
-        className={`relative w-full flex-1 ${getViewportAspectClass()} bg-black rounded-2xl overflow-hidden shadow-2xl border-2 border-zinc-800 flex items-center justify-center select-none group/player`}
-      >
+      {/* ADAPTIVE MULTI-ASPECT RATIO PLAYER VIEWPORT CONTAINER */}
+      <div className="flex-1 w-full min-h-0 flex items-center justify-center overflow-hidden p-1">
+        <div
+          ref={viewportRef}
+          className={`relative ${getViewportAspectClass()} bg-[#0d0d0e] rounded-xl overflow-hidden shadow-2xl border border-[#27272a] flex items-center justify-center select-none group/player`}
+        >
         {/* Layer 1: Visual Media Content with 9:16 Blur-Padding */}
         <div
           className={`w-full h-full relative overflow-hidden transition-all duration-300 ${getColorFilterClass()}`}
@@ -505,15 +506,16 @@ export function RemotionPreviewPlayer({
         {bgmAsset?.url && (
           <audio ref={bgmAudioRef} src={bgmAsset.url} loop preload="auto" />
         )}
+        </div>
       </div>
 
-      {/* BOTTOM PLAYBACK CONTROLS BAR */}
-      <div className="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl p-3 flex items-center justify-between gap-2 shadow-lg">
+      {/* BOTTOM PLAYBACK CONTROLS BAR (Matte Dark Monochromatic) */}
+      <div className="w-full bg-[#121214] border border-[#27272a] rounded-lg px-3 py-2 flex items-center justify-between gap-2 shadow-xs flex-shrink-0">
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => handleSeekDelta(-5)}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+            className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-[#18181b] transition cursor-pointer"
             title="Rewind 5s"
           >
             <Rewind className="w-4 h-4" />
@@ -522,7 +524,7 @@ export function RemotionPreviewPlayer({
           <button
             type="button"
             onClick={togglePlay}
-            className="w-9 h-9 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition shadow-md shadow-indigo-600/30 cursor-pointer"
+            className="w-8 h-8 rounded-md bg-[#27272a] hover:bg-[#3f3f46] text-[#ededed] border border-zinc-600/80 flex items-center justify-center transition shadow-xs cursor-pointer"
             title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
           >
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
@@ -531,7 +533,7 @@ export function RemotionPreviewPlayer({
           <button
             type="button"
             onClick={() => handleSeekDelta(5)}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+            className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-[#18181b] transition cursor-pointer"
             title="Forward 5s"
           >
             <FastForward className="w-4 h-4" />
@@ -540,7 +542,7 @@ export function RemotionPreviewPlayer({
           <button
             type="button"
             onClick={() => onTimeUpdate(0)}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+            className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-[#18181b] transition cursor-pointer"
             title="Restart from 00:00"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -559,7 +561,7 @@ export function RemotionPreviewPlayer({
           <button
             type="button"
             onClick={() => setPlaybackSpeed(playbackSpeed === 1 ? 1.5 : playbackSpeed === 1.5 ? 2 : 1)}
-            className="px-2 py-1 rounded text-[11px] font-mono font-bold bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition cursor-pointer"
+            className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#18181b] hover:bg-[#27272a] text-zinc-300 border border-[#27272a] transition cursor-pointer"
             title="Playback Speed"
           >
             {playbackSpeed}x
@@ -568,10 +570,10 @@ export function RemotionPreviewPlayer({
           <button
             type="button"
             onClick={() => setIsMuted(!isMuted)}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+            className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-[#18181b] transition cursor-pointer"
             title={isMuted ? 'Unmute' : 'Mute'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
+            {isMuted ? <VolumeX className="w-4 h-4 text-zinc-400" /> : <Volume2 className="w-4 h-4" />}
           </button>
         </div>
       </div>

@@ -171,10 +171,10 @@ export function TimelinePanel({
           <button
             type="button"
             onClick={handleBladeSplit}
-            className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#18181b] hover:bg-[#27272a] text-zinc-200 text-xs font-bold border border-[#27272a] hover:border-[#00e5ff] transition cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#18181b] hover:bg-[#27272a] text-zinc-300 text-xs font-medium border border-[#27272a] hover:border-zinc-500 transition cursor-pointer"
             title="Blade Tool: Split active clip at playhead position"
           >
-            <Scissors className="w-3.5 h-3.5 text-[#00e5ff]" />
+            <Scissors className="w-3.5 h-3.5 text-zinc-400" />
             <span className="hidden sm:inline">Split</span>
           </button>
 
@@ -182,9 +182,9 @@ export function TimelinePanel({
           <button
             type="button"
             onClick={() => setRippleEdit(!rippleEdit)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold border transition cursor-pointer ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border transition cursor-pointer ${
               rippleEdit
-                ? 'bg-[#00e5ff]/15 border-[#00e5ff]/40 text-[#00e5ff]'
+                ? 'bg-[#27272a] border-zinc-500 text-[#ededed]'
                 : 'bg-[#18181b] border-[#27272a] text-zinc-400 hover:text-white'
             }`}
             title="Ripple Edit Mode"
@@ -197,9 +197,9 @@ export function TimelinePanel({
           <button
             type="button"
             onClick={() => setMagnetSnapping(!magnetSnapping)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold border transition cursor-pointer ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border transition cursor-pointer ${
               magnetSnapping
-                ? 'bg-[#00e5ff]/15 border-[#00e5ff]/40 text-[#00e5ff]'
+                ? 'bg-[#27272a] border-zinc-500 text-[#ededed]'
                 : 'bg-[#18181b] border-[#27272a] text-zinc-400 hover:text-white'
             }`}
             title="Magnet Snapping to clip boundaries"
@@ -212,22 +212,22 @@ export function TimelinePanel({
           <button
             type="button"
             onClick={() => setIsRecording(!isRecording)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold border transition cursor-pointer ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border transition cursor-pointer ${
               isRecording
-                ? 'bg-red-500/20 border-red-500/50 text-red-400 animate-pulse'
+                ? 'bg-zinc-800 border-zinc-500 text-zinc-200'
                 : 'bg-[#18181b] border-[#27272a] text-zinc-400 hover:text-white'
             }`}
             title="Record Voiceover"
           >
-            <Mic className="w-3.5 h-3.5 text-red-400" />
+            <Mic className="w-3.5 h-3.5 text-zinc-400" />
             <span className="hidden sm:inline">Record</span>
           </button>
         </div>
 
         {/* Timecode & Zoom Slider */}
         <div className="flex items-center gap-4">
-          <div className="font-mono text-xs font-bold text-zinc-200">
-            <span className="text-[#00e5ff]">{formatTime(currentTime)}</span>
+          <div className="font-mono text-xs font-medium text-zinc-200">
+            <span className="text-[#ededed] font-semibold">{formatTime(currentTime)}</span>
             <span className="text-zinc-600 mx-1">/</span>
             <span className="text-zinc-500">{formatTime(totalDuration)}</span>
           </div>
@@ -241,7 +241,7 @@ export function TimelinePanel({
               step={0.1}
               value={zoomLevel}
               onChange={(e) => setZoomLevel(Number(e.target.value))}
-              className="w-16 accent-[#00e5ff] bg-[#27272a] h-1 rounded cursor-pointer"
+              className="w-16 accent-zinc-300 bg-[#27272a] h-1 rounded cursor-pointer"
               title="Timeline Track Zoom"
             />
             <ZoomIn className="w-3 h-3 text-zinc-500" />
@@ -252,10 +252,10 @@ export function TimelinePanel({
       {/* 2. Interactive Multi-Track Scroll Area */}
       <div className="flex-1 overflow-x-auto overflow-y-auto p-3 bg-[#18181b]">
         {timeline.clips.length === 0 ? (
-          /* Empty Placeholder as specified */
-          <div className="h-44 border-2 border-dashed border-[#27272a] rounded-xl flex flex-col items-center justify-center text-center p-6 text-zinc-500">
-            <Plus className="w-8 h-8 mb-2 text-[#00e5ff] opacity-40" />
-            <p className="text-sm font-semibold text-zinc-300">
+          /* Empty Placeholder */
+          <div className="h-44 border border-dashed border-[#27272a] rounded-xl flex flex-col items-center justify-center text-center p-6 text-zinc-500">
+            <Plus className="w-8 h-8 mb-2 text-zinc-600" />
+            <p className="text-sm font-medium text-zinc-300">
               Drag material here and start to create
             </p>
             <p className="text-xs text-zinc-500 mt-1">
@@ -287,9 +287,9 @@ export function TimelinePanel({
             </div>
 
             {/* TRACK 1: Dynamic Captions Track */}
-            <div className="relative h-6 bg-[#0d0d0f] rounded-md flex items-center overflow-hidden border border-[#27272a] px-1">
-              <span className="absolute left-1 text-[8px] font-bold text-yellow-400 uppercase tracking-tighter flex items-center gap-1 z-10 bg-black/80 px-1 rounded pointer-events-none">
-                <Subtitles className="w-2.5 h-2.5 text-yellow-400" /> Captions
+            <div className="relative h-6 bg-[#0d0d0e] rounded-md flex items-center overflow-hidden border border-[#27272a] px-1">
+              <span className="absolute left-1 text-[8px] font-medium text-zinc-300 uppercase tracking-tighter flex items-center gap-1 z-10 bg-[#121214] px-1 rounded pointer-events-none border border-[#27272a]">
+                <Subtitles className="w-2.5 h-2.5 text-zinc-400" /> Captions
               </span>
 
               {timeline.subtitles.map((sub) => {
@@ -303,8 +303,8 @@ export function TimelinePanel({
                     style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
                     className={`absolute h-4 rounded px-1 flex items-center transition-colors ${
                       isSubActive
-                        ? 'bg-yellow-400 text-black font-bold'
-                        : 'bg-yellow-400/20 border border-yellow-400/30 text-yellow-300'
+                        ? 'bg-zinc-200 text-zinc-900 font-bold'
+                        : 'bg-zinc-800 border border-zinc-700 text-zinc-300'
                     }`}
                     title={sub.text}
                   >
@@ -315,10 +315,10 @@ export function TimelinePanel({
             </div>
 
             {/* TRACK 2: Main Video & Static Visual Cuts Track */}
-            <div className="relative h-12 bg-[#0d0d0f] rounded-md flex overflow-hidden border border-[#27272a]">
+            <div className="relative h-12 bg-[#0d0d0e] rounded-md flex overflow-hidden border border-[#27272a]">
               <div className="absolute left-1 top-0 bottom-0 flex items-center z-10 pointer-events-none">
-                <span className="text-[9px] font-bold text-zinc-300 uppercase tracking-tighter flex items-center gap-1 bg-black/80 px-1 rounded">
-                  <Film className="w-2.5 h-2.5 text-[#00e5ff]" /> Main Video
+                <span className="text-[9px] font-medium text-zinc-300 uppercase tracking-tighter flex items-center gap-1 bg-[#121214] px-1 rounded border border-[#27272a]">
+                  <Film className="w-2.5 h-2.5 text-zinc-400" /> Main Video
                 </span>
               </div>
 
@@ -335,19 +335,19 @@ export function TimelinePanel({
                     style={{ width: `${widthPct}%` }}
                     className={`h-full border-r border-[#121214] p-1 flex flex-col justify-center relative transition-colors ${
                       isActive
-                        ? 'bg-[#00e5ff]/25 border-t-2 border-t-[#00e5ff]'
+                        ? 'bg-zinc-800 border-t-2 border-t-zinc-300'
                         : isVideo
-                        ? 'bg-cyan-950/30 hover:bg-cyan-950/50'
-                        : 'bg-emerald-950/30 hover:bg-emerald-950/50'
+                        ? 'bg-zinc-900/90 hover:bg-zinc-800/60'
+                        : 'bg-zinc-900/60 hover:bg-zinc-800/40'
                     }`}
                     title={`${clip.assetId} (${clip.startTime}s - ${(clip.startTime + clip.duration).toFixed(1)}s)`}
                   >
                     <div className="flex items-center justify-between text-[10px] font-mono leading-none truncate">
-                      <span className={`font-bold ${isVideo ? 'text-cyan-300' : 'text-emerald-300'}`}>
+                      <span className="font-semibold text-zinc-200">
                         {clip.assetId}
                       </span>
                       {transBadge && (
-                        <span className="text-[8px] px-1 py-0.2 rounded bg-black/60 text-zinc-300">
+                        <span className="text-[8px] px-1 py-0.2 rounded bg-black/60 text-zinc-400">
                           {transBadge}
                         </span>
                       )}
@@ -361,8 +361,8 @@ export function TimelinePanel({
             </div>
 
             {/* TRACK 3: Overlay / B-Roll Track */}
-            <div className="relative h-6 bg-[#0d0d0f] rounded-md flex items-center overflow-hidden border border-[#27272a] px-1">
-              <span className="absolute left-1 text-[8px] font-bold text-zinc-500 uppercase tracking-tighter flex items-center gap-1 z-10 bg-black/80 px-1 rounded pointer-events-none">
+            <div className="relative h-6 bg-[#0d0d0e] rounded-md flex items-center overflow-hidden border border-[#27272a] px-1">
+              <span className="absolute left-1 text-[8px] font-medium text-zinc-500 uppercase tracking-tighter flex items-center gap-1 z-10 bg-[#121214] px-1 rounded pointer-events-none border border-[#27272a]">
                 <Layers className="w-2.5 h-2.5 text-zinc-500" /> Overlay / B-Roll
               </span>
               <div className="w-full text-center text-[9px] text-zinc-600 font-mono">
@@ -371,9 +371,9 @@ export function TimelinePanel({
             </div>
 
             {/* TRACK 4: Voiceover Track (VO_TRACK) */}
-            <div className="relative h-7 bg-[#0d0d0f] rounded-md flex items-center overflow-hidden border border-[#27272a] px-1">
-              <span className="absolute left-1 text-[8px] font-bold text-amber-400 uppercase tracking-tighter flex items-center gap-1 z-10 bg-black/80 px-1 rounded pointer-events-none">
-                <Mic className="w-2.5 h-2.5" /> VO_TRACK
+            <div className="relative h-7 bg-[#0d0d0e] rounded-md flex items-center overflow-hidden border border-[#27272a] px-1">
+              <span className="absolute left-1 text-[8px] font-medium text-zinc-300 uppercase tracking-tighter flex items-center gap-1 z-10 bg-[#121214] px-1 rounded pointer-events-none border border-[#27272a]">
+                <Mic className="w-2.5 h-2.5 text-zinc-400" /> VO_TRACK
               </span>
 
               {speechIntervals.map((interval, idx) => {
@@ -387,8 +387,8 @@ export function TimelinePanel({
                     style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
                     className={`absolute h-4 rounded px-1 flex items-center transition-colors ${
                       isSpeakingNow
-                        ? 'bg-amber-500 text-zinc-950 font-bold'
-                        : 'bg-amber-500/20 border border-amber-500/30 text-amber-300'
+                        ? 'bg-zinc-200 text-zinc-900 font-bold'
+                        : 'bg-zinc-800 border border-zinc-700 text-zinc-300'
                     }`}
                   >
                     <span className="text-[8px] font-mono truncate">Speech</span>
@@ -398,12 +398,12 @@ export function TimelinePanel({
             </div>
 
             {/* TRACK 5: Background Music Track (BG_MUSIC) with Ducking */}
-            <div className="relative h-7 bg-[#0d0d0f] rounded-md flex items-center overflow-hidden border border-[#27272a] px-1">
-              <span className="absolute left-1 text-[8px] font-bold text-purple-400 uppercase tracking-tighter flex items-center gap-1 z-10 bg-black/80 px-1 rounded pointer-events-none">
-                <Music className="w-2.5 h-2.5" /> BG_MUSIC
+            <div className="relative h-7 bg-[#0d0d0e] rounded-md flex items-center overflow-hidden border border-[#27272a] px-1">
+              <span className="absolute left-1 text-[8px] font-medium text-zinc-300 uppercase tracking-tighter flex items-center gap-1 z-10 bg-[#121214] px-1 rounded pointer-events-none border border-[#27272a]">
+                <Music className="w-2.5 h-2.5 text-zinc-400" /> BG_MUSIC
               </span>
 
-              <div className="w-full h-3 bg-purple-500/15 rounded border border-purple-500/25 relative flex items-center">
+              <div className="w-full h-3 bg-zinc-900 rounded border border-[#27272a] relative flex items-center">
                 {speechIntervals.map((interval, idx) => {
                   const leftPct = (interval.start / totalDuration) * 100;
                   const widthPct = ((interval.end - interval.start) / totalDuration) * 100;
@@ -411,10 +411,10 @@ export function TimelinePanel({
                     <div
                       key={idx}
                       style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
-                      className="absolute h-1 bg-purple-500/50 border-t border-b border-purple-400/60 rounded flex items-center justify-center"
+                      className="absolute h-1 bg-zinc-600 border-t border-b border-zinc-500 rounded flex items-center justify-center"
                       title="Auto-Ducking: -16 dB during speech"
                     >
-                      <span className="text-[7px] text-purple-200 font-mono leading-none">
+                      <span className="text-[7px] text-zinc-200 font-mono leading-none">
                         -16dB
                       </span>
                     </div>
@@ -426,9 +426,9 @@ export function TimelinePanel({
             {/* PLAYHEAD SCRUBBER NEEDLE */}
             <div
               style={{ left: `${playheadPercent}%` }}
-              className="absolute top-0 bottom-0 w-0.5 bg-[#00e5ff] z-30 pointer-events-none shadow-[0_0_10px_#00e5ff]"
+              className="absolute top-0 bottom-0 w-0.5 bg-[#ededed] z-30 pointer-events-none shadow-[0_0_8px_rgba(255,255,255,0.4)]"
             >
-              <div className="w-3 h-3 bg-[#00e5ff] rotate-45 -translate-x-1/2 -translate-y-1 rounded-xs" />
+              <div className="w-2.5 h-2.5 bg-[#ededed] rotate-45 -translate-x-1/2 -translate-y-1 rounded-xs" />
             </div>
           </div>
         )}

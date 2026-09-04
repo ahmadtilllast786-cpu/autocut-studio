@@ -38,39 +38,39 @@ export function InspectorPanel({
         <button
           type="button"
           onClick={() => setActiveSubTab('prompt')}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
             activeSubTab === 'prompt'
-              ? 'bg-[#18181b] text-[#00e5ff] shadow-xs'
+              ? 'bg-[#18181b] text-[#ededed] border border-[#27272a]'
               : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#18181b]/50'
           }`}
         >
-          <Wand2 className={`w-3.5 h-3.5 ${activeSubTab === 'prompt' ? 'text-[#00e5ff]' : 'text-zinc-400'}`} />
+          <Wand2 className={`w-3.5 h-3.5 ${activeSubTab === 'prompt' ? 'text-[#ededed]' : 'text-zinc-400'}`} />
           <span>AI Prompt</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveSubTab('captions')}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
             activeSubTab === 'captions'
-              ? 'bg-[#18181b] text-[#00e5ff] shadow-xs'
+              ? 'bg-[#18181b] text-[#ededed] border border-[#27272a]'
               : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#18181b]/50'
           }`}
         >
-          <Subtitles className={`w-3.5 h-3.5 ${activeSubTab === 'captions' ? 'text-[#00e5ff]' : 'text-zinc-400'}`} />
+          <Subtitles className={`w-3.5 h-3.5 ${activeSubTab === 'captions' ? 'text-[#ededed]' : 'text-zinc-400'}`} />
           <span>Captions</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveSubTab('details')}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
             activeSubTab === 'details'
-              ? 'bg-[#18181b] text-[#00e5ff] shadow-xs'
+              ? 'bg-[#18181b] text-[#ededed] border border-[#27272a]'
               : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#18181b]/50'
           }`}
         >
-          <Info className={`w-3.5 h-3.5 ${activeSubTab === 'details' ? 'text-[#00e5ff]' : 'text-zinc-400'}`} />
+          <Info className={`w-3.5 h-3.5 ${activeSubTab === 'details' ? 'text-[#ededed]' : 'text-zinc-400'}`} />
           <span>Details</span>
         </button>
       </div>
@@ -118,53 +118,53 @@ export function InspectorPanel({
           <div className="grid grid-cols-2 gap-2.5">
             <div className="p-3 rounded-xl bg-[#121214] border border-[#27272a] space-y-1">
               <span className="text-[10px] text-zinc-500 uppercase font-mono">Aspect Ratio</span>
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Monitor className="w-3.5 h-3.5 text-[#00e5ff]" />
+              <div className="text-xs font-semibold text-[#ededed] flex items-center gap-1.5">
+                <Monitor className="w-3.5 h-3.5 text-zinc-400" />
                 <span>{timeline.aspectRatio}</span>
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-[#121214] border border-[#27272a] space-y-1">
               <span className="text-[10px] text-zinc-500 uppercase font-mono">Resolution</span>
-              <div className="text-xs font-bold text-white font-mono">
+              <div className="text-xs font-semibold text-[#ededed] font-mono">
                 {timeline.width} x {timeline.height}
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-[#121214] border border-[#27272a] space-y-1">
               <span className="text-[10px] text-zinc-500 uppercase font-mono">Frame Rate</span>
-              <div className="text-xs font-bold text-white font-mono">
+              <div className="text-xs font-semibold text-[#ededed] font-mono">
                 {timeline.fps} FPS
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-[#121214] border border-[#27272a] space-y-1">
               <span className="text-[10px] text-zinc-500 uppercase font-mono">Total Duration</span>
-              <div className="text-xs font-bold text-[#00e5ff] font-mono flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
+              <div className="text-xs font-semibold text-[#ededed] font-mono flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-zinc-400" />
                 <span>{timeline.totalDuration.toFixed(1)}s</span>
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-[#121214] border border-[#27272a] space-y-1">
               <span className="text-[10px] text-zinc-500 uppercase font-mono">Video Cuts</span>
-              <div className="text-xs font-bold text-white font-mono">
+              <div className="text-xs font-semibold text-[#ededed] font-mono">
                 {timeline.clips.length} Clips
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-[#121214] border border-[#27272a] space-y-1">
               <span className="text-[10px] text-zinc-500 uppercase font-mono">Auto-Ducking</span>
-              <div className="text-xs font-bold text-purple-400 font-mono flex items-center gap-1">
-                <Volume2 className="w-3.5 h-3.5" />
+              <div className="text-xs font-semibold text-zinc-300 font-mono flex items-center gap-1">
+                <Volume2 className="w-3.5 h-3.5 text-zinc-400" />
                 <span>-16 dB</span>
               </div>
             </div>
           </div>
 
           <div className="p-3 rounded-xl bg-[#121214] border border-[#27272a] space-y-2">
-            <div className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <div className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-zinc-400" />
               <span>AI Director Schema Status</span>
             </div>
             <p className="text-[11px] text-zinc-400 leading-relaxed">

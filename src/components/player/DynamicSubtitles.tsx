@@ -67,8 +67,8 @@ export function DynamicSubtitles({
         </div>
       )}
 
-      {/* 2. Hormozi Pop Style */}
-      {style === 'hormozi-pop' && (
+      {/* 2. Hormozi Style (All-Caps Punch) */}
+      {(style === 'hormozi' || style === 'hormozi-pop') && (
         <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center font-black uppercase tracking-tight">
           {currentSegment.words.map((w, idx) => {
             const isActive = currentTime >= w.start && currentTime <= w.end;
@@ -90,8 +90,8 @@ export function DynamicSubtitles({
         </div>
       )}
 
-      {/* 3. Minimal Boxed Style */}
-      {(style === 'minimal-boxed' || (style as string) === 'cyber-boxed' || (style as string) === 'premiere-minimal') && (
+      {/* 3. Minimal Clean Style (Translucent Pill) */}
+      {(style === 'minimal-clean' || style === 'minimal-boxed' || (style as string) === 'cyber-boxed' || (style as string) === 'premiere-minimal') && (
         <div className="bg-zinc-950/85 backdrop-blur-md px-4 py-2 rounded-xl flex flex-wrap items-center justify-center gap-x-2 border border-zinc-700/80 shadow-2xl">
           {currentSegment.words.map((w, idx) => {
             const isActive = currentTime >= w.start && currentTime <= w.end;

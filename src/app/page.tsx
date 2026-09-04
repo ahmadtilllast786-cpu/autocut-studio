@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MediaAsset,
   Timeline,
@@ -14,7 +14,11 @@ import { SAMPLE_ASSETS, DEFAULT_TIMELINE } from '@/lib/sampleAssets';
 import { Navbar } from '@/components/Navbar';
 import { SettingsModal, AppSettings } from '@/components/SettingsModal';
 import { ExportModal } from '@/components/export/ExportModal';
-import { DockingWorkspace } from '@/components/docking/DockingWorkspace';
+import { MediaDrawerPanel } from '@/components/docking/panels/MediaDrawerPanel';
+import { PlayerViewportPanel } from '@/components/docking/panels/PlayerViewportPanel';
+import { InspectorPanel } from '@/components/docking/panels/InspectorPanel';
+import { TimelinePanel } from '@/components/docking/panels/TimelinePanel';
+import { SelfCodeDiagnostic } from '@/components/diagnostic/SelfCodeDiagnostic';
 
 const DEFAULT_SETTINGS: AppSettings = {
   provider: 'smart-director',
@@ -40,7 +44,6 @@ export default function AutoCutStudioPage() {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
-  const resetLayoutFnRef = useRef<(() => void) | null>(null);
 
   // Load saved settings from localStorage on mount
   useEffect(() => {
@@ -142,42 +145,71 @@ export default function AutoCutStudioPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#121214] text-zinc-100 font-sans overflow-hidden">
-      {/* Top Menu Bar */}
+    <div className="grid grid-rows-[52px_1fr_280px] h-screen w-screen bg-[#0d0d0e] text-[#ededed] font-sans overflow-hidden select-none">
+      {/* 1. Top Menu Bar (Strict 52px) */}
       <Navbar
         onLoadSamples={handleLoadSampleAssets}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenExport={() => setIsExportOpen(true)}
-        onResetLayout={() => resetLayoutFnRef.current?.()}
         hasClips={timeline.clips.length > 0}
         activeProvider={settings.provider}
         aspectRatio={timeline.aspectRatio}
-        activeStyle={timeline.activeSubtitleStyle || 'capcut-karaoke'}
+        activeStyle={timeline.activeSubtitleStyle || 'bouncy-karaoke'}
       />
 
-      {/* Dockable, Resizable, and Shuffleable Desktop Workspace */}
-      <main className="flex-1 w-full overflow-hidden relative">
-        <DockingWorkspace
+      {/* 2. Middle Row: 3 Non-Overlapping Panels (1fr) */}
+      <main className="grid grid-cols-[320px_1fr_380px] overflow-hidden bg-[#0d0d0e]">
+        {/* Left Quadrant: Media & Feature Drawer */}
+        <div className="overflow-hidden border-r border-[#27272a] bg-[#121214] flex flex-col">
+          <MediaDrawerPanel
+            assets={assets}
+            onAddAsset={handleAddAsset}
+            onDeleteAsset={handleDeleteAsset}
+            onLoadSamples={handleLoadSampleAssets}
+          />
+        </div>
+
+        {/* Center Quadrant: Player Viewport (Aspect-Ratio Locked Canvas) */}
+        <div className="overflow-hidden bg-[#0d0d0e] flex flex-col items-center justify-center p-2 relative">
+          <PlayerViewportPanel
+            timeline={timeline}
+            assets={assets}
+            currentTime={currentTime}
+            onTimeUpdate={setCurrentTime}
+            onAspectRatioChange={handleAspectRatioChange}
+            onCaptionPositionChange={handleCaptionPositionChange}
+            onSubtitleStyleChange={handleSubtitleStyleChange}
+          />
+        </div>
+
+        {/* Right Quadrant: Inspector & AI Director */}
+        <div className="overflow-hidden border-l border-[#27272a] bg-[#121214] flex flex-col">
+          <InspectorPanel
+            timeline={timeline}
+            assets={assets}
+            currentTime={currentTime}
+            onTimelineGenerated={handleTimelineGenerated}
+            onUpdateSubtitles={handleSubtitlesUpdate}
+            onSeek={setCurrentTime}
+            onSubtitleStyleChange={handleSubtitleStyleChange}
+            settings={settings}
+          />
+        </div>
+      </main>
+
+      {/* 3. Bottom Row: Multi-Track Timeline (Strict 280px) */}
+      <footer className="h-[280px] overflow-hidden border-t border-[#27272a] bg-[#121214]">
+        <TimelinePanel
           timeline={timeline}
           assets={assets}
           currentTime={currentTime}
-          settings={settings}
-          onTimeUpdate={setCurrentTime}
           onSeek={setCurrentTime}
-          onAddAsset={handleAddAsset}
-          onDeleteAsset={handleDeleteAsset}
-          onLoadSamples={handleLoadSampleAssets}
-          onTimelineGenerated={handleTimelineGenerated}
-          onAspectRatioChange={handleAspectRatioChange}
-          onCaptionPositionChange={handleCaptionPositionChange}
-          onSubtitleStyleChange={handleSubtitleStyleChange}
-          onUpdateSubtitles={handleSubtitlesUpdate}
           onUpdateClips={handleUpdateClips}
-          onRegisterResetLayout={(fn) => {
-            resetLayoutFnRef.current = fn;
-          }}
         />
-      </main>
+      </footer>
+
+      {/* 4. Self-Code Diagnostic Dead-Code Detection Badge */}
+      <SelfCodeDiagnostic />
 
       {/* Settings Modal */}
       <SettingsModal

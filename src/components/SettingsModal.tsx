@@ -38,22 +38,22 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden text-zinc-200 flex flex-col max-h-[90vh]">
+      <div className="bg-[#121214] border border-[#27272a] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden text-zinc-200 flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#27272a]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-              <Sparkles className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-lg bg-[#18181b] border border-[#27272a] flex items-center justify-center text-zinc-300">
+              <Sparkles className="w-4 h-4 text-zinc-400" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">AutoCut Studio Settings</h2>
+              <h2 className="text-base font-semibold text-[#ededed]">AutoCut Studio Settings</h2>
               <p className="text-xs text-zinc-400">Configure AI Director, speech engine, and audio levels</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-800 transition cursor-pointer"
+            className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-[#18181b] transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -64,7 +64,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
           {/* AI Director Provider */}
           <div className="space-y-3">
             <label className="text-xs font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
-              <Key className="w-3.5 h-3.5 text-indigo-400" />
+              <Key className="w-3.5 h-3.5 text-zinc-400" />
               AI Director Engine Provider
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -79,8 +79,8 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
                   onClick={() => setFormData({ ...formData, provider: p.id as AppSettings['provider'] })}
                   className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
                     formData.provider === p.id
-                      ? 'border-indigo-500 bg-indigo-500/10 text-white shadow-sm'
-                      : 'border-zinc-800 bg-zinc-950/40 hover:bg-zinc-800/40 text-zinc-400'
+                      ? 'border-zinc-400 bg-zinc-800/60 text-white shadow-sm'
+                      : 'border-[#27272a] bg-[#18181b] hover:bg-[#27272a]/50 text-zinc-400'
                   }`}
                 >
                   <span className="text-xs font-bold leading-snug">{p.name}</span>
@@ -92,7 +92,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
 
           {/* Gemini Settings */}
           {formData.provider === 'gemini' && (
-            <div className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-3">
+            <div className="p-4 rounded-xl bg-[#18181b] border border-[#27272a] space-y-3">
               <div>
                 <label className="block text-xs font-medium text-zinc-300 mb-1">
                   Google Gemini API Key
@@ -102,7 +102,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
                   value={formData.geminiKey}
                   onChange={(e) => setFormData({ ...formData, geminiKey: e.target.value })}
                   placeholder="AIzaSy..."
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
+                  className="w-full bg-[#121214] border border-[#27272a] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-500 font-mono"
                 />
                 <p className="text-[11px] text-zinc-500 mt-1">
                   Your key is stored locally in your browser and used strictly for timeline generation.
@@ -113,7 +113,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
                 <select
                   value={formData.geminiModel}
                   onChange={(e) => setFormData({ ...formData, geminiModel: e.target.value })}
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#121214] border border-[#27272a] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-500"
                 >
                   <option value="gemini-2.5-flash">gemini-2.5-flash (Fast & Structured)</option>
                   <option value="gemini-2.5-pro">gemini-2.5-pro (Deep Reasoning)</option>
@@ -124,7 +124,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
 
           {/* OpenAI Settings */}
           {formData.provider === 'openai' && (
-            <div className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-3">
+            <div className="p-4 rounded-xl bg-[#18181b] border border-[#27272a] space-y-3">
               <div>
                 <label className="block text-xs font-medium text-zinc-300 mb-1">
                   OpenAI API Key
@@ -134,7 +134,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
                   value={formData.openaiKey}
                   onChange={(e) => setFormData({ ...formData, openaiKey: e.target.value })}
                   placeholder="sk-proj-..."
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
+                  className="w-full bg-[#121214] border border-[#27272a] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-500 font-mono"
                 />
               </div>
               <div>
@@ -142,7 +142,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
                 <select
                   value={formData.openaiModel}
                   onChange={(e) => setFormData({ ...formData, openaiModel: e.target.value })}
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#121214] border border-[#27272a] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-500"
                 >
                   <option value="gpt-4o-mini">gpt-4o-mini (Optimal for Video Timelines)</option>
                   <option value="gpt-4o">gpt-4o (Full Flagship)</option>
@@ -154,7 +154,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
           {/* Whisper API Settings */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
-              <Mic className="w-3.5 h-3.5 text-pink-400" />
+              <Mic className="w-3.5 h-3.5 text-zinc-400" />
               Whisper Speech-to-Text Key (Optional)
             </label>
             <input
@@ -162,7 +162,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
               value={formData.whisperKey}
               onChange={(e) => setFormData({ ...formData, whisperKey: e.target.value })}
               placeholder="Leave blank to use pre-synced word timestamps & local transcript generator"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
+              className="w-full bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-500 font-mono"
             />
             <p className="text-[11px] text-zinc-500">
               When uploading custom voiceovers, Whisper extracts exact word-by-word timestamps for auto-captions.
@@ -173,10 +173,10 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
-                <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                <Volume2 className="w-3.5 h-3.5 text-zinc-400" />
                 Background Music Ducking Attenuation
               </label>
-              <span className="text-xs font-mono font-bold text-emerald-400">
+              <span className="text-xs font-mono font-semibold text-zinc-200">
                 {formData.duckingDb} dB
               </span>
             </div>
@@ -187,7 +187,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
               step={1}
               value={formData.duckingDb}
               onChange={(e) => setFormData({ ...formData, duckingDb: Number(e.target.value) })}
-              className="w-full accent-emerald-500 bg-zinc-800 h-1.5 rounded-lg cursor-pointer"
+              className="w-full accent-zinc-300 bg-[#27272a] h-1.5 rounded-lg cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-zinc-500">
               <span>Subtle (-8 dB)</span>
@@ -199,7 +199,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
           {/* Export Resolution */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
-              <Monitor className="w-3.5 h-3.5 text-violet-400" />
+              <Monitor className="w-3.5 h-3.5 text-zinc-400" />
               Default Video Render Resolution (9:16)
             </label>
             <div className="grid grid-cols-2 gap-3">
@@ -213,8 +213,8 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
                   onClick={() => setFormData({ ...formData, exportResolution: res.id as AppSettings['exportResolution'] })}
                   className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                     formData.exportResolution === res.id
-                      ? 'border-indigo-500 bg-indigo-500/10 text-white'
-                      : 'border-zinc-800 bg-zinc-950/40 hover:bg-zinc-800/40 text-zinc-400'
+                      ? 'border-zinc-400 bg-zinc-800/60 text-white'
+                      : 'border-[#27272a] bg-[#18181b] hover:bg-[#27272a]/50 text-zinc-400'
                   }`}
                 >
                   <div className="text-xs font-bold">{res.label}</div>
@@ -226,7 +226,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-zinc-800 bg-zinc-950/50 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-[#27272a] bg-[#18181b] flex items-center justify-between">
           <span className="text-xs text-zinc-500">Changes apply to subsequent AI generation</span>
           <div className="flex items-center gap-2">
             <button
@@ -239,11 +239,11 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
             <button
               type="button"
               onClick={handleSave}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-md shadow-indigo-600/20 transition cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-[#ededed] bg-[#27272a] hover:bg-[#3f3f46] border border-[#3f3f46] rounded-lg transition cursor-pointer"
             >
               {savedToast ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <Check className="w-3.5 h-3.5 text-zinc-300" />
                   <span>Saved!</span>
                 </>
               ) : (

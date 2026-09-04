@@ -35,17 +35,19 @@ export type ColorFilterType =
   | 'teal-orange'
   | 'cinematic';
 
-// Strict 3 Short-Form Caption Presets
+// Strict 3 Short-Form Caption Presets: Bouncy Karaoke, Hormozi, Minimal Clean
 export type SubtitleStyleType =
   | 'bouncy-karaoke'
+  | 'hormozi'
+  | 'minimal-clean'
   | 'hormozi-pop'
   | 'minimal-boxed';
 
 export type AspectRatioType = '9:16' | '16:9' | '1:1';
 
 export interface CaptionPosition {
-  x: number; // percentage 0 - 100 (default: 50)
-  y: number; // percentage 20 - 80 (central 60% safe zone)
+  x: number; // percentage 5 - 95 (default: 50)
+  y: number; // percentage 10 - 85 (safe zone lock, default: 70)
 }
 
 export interface WordTimestamp {
@@ -122,12 +124,14 @@ export const WordTimestampSchema = z.object({
 });
 
 export const CaptionPositionSchema = z.object({
-  x: z.number().min(0).max(100).default(50),
-  y: z.number().min(20).max(80).default(70), // Central 60% safe zone lock
+  x: z.number().min(5).max(95).default(50),
+  y: z.number().min(10).max(85).default(70), // Safe zone lock (10% to 85%)
 });
 
 export const SubtitleStyleTypeSchema = z.enum([
   'bouncy-karaoke',
+  'hormozi',
+  'minimal-clean',
   'hormozi-pop',
   'minimal-boxed',
 ]);

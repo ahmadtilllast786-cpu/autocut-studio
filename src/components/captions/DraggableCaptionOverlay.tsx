@@ -65,9 +65,9 @@ export function DraggableCaptionOverlay({
       const deltaPctX = (deltaX / containerWidth) * 100;
       const deltaPctY = (deltaY / containerHeight) * 100;
 
-      let newX = Math.max(10, Math.min(90, dragStartRef.current.initialPosX + deltaPctX));
-      // Strict Safe-Zone Lock: Clamp Y within central 60% (20% to 80%) to clear TikTok/Reels UI
-      let newY = Math.max(20, Math.min(80, dragStartRef.current.initialPosY + deltaPctY));
+      // Clamp strictly within preview canvas boundaries: X: 5%–95%, Y: 10%–85%
+      let newX = Math.max(5, Math.min(95, dragStartRef.current.initialPosX + deltaPctX));
+      let newY = Math.max(10, Math.min(85, dragStartRef.current.initialPosY + deltaPctY));
 
       const newSnapGuides = {
         showVerticalCenter: false,
@@ -128,17 +128,17 @@ export function DraggableCaptionOverlay({
       {/* SNAP GUIDELINES OVERLAY */}
       {isDragging && (
         <div className="absolute inset-0 pointer-events-none z-30">
-          {/* Central 60% Safe-Zone Box (Top 20% to Bottom 80%) */}
-          <div className="absolute left-2 right-2 top-[20%] bottom-[20%] border-2 border-dashed border-amber-500/40 rounded-lg pointer-events-none bg-amber-500/5">
-            <span className="absolute top-1 left-2 px-1.5 py-0.5 rounded bg-amber-500/90 text-zinc-950 font-mono text-[9px] font-black tracking-wider">
-              CENTRAL 60% SAFE ZONE (20% - 80%)
+          {/* Safe-Zone Box (Top 10% to Bottom 85%) */}
+          <div className="absolute left-2 right-2 top-[10%] bottom-[15%] border border-dashed border-zinc-500/40 rounded-lg pointer-events-none bg-zinc-950/10">
+            <span className="absolute top-1 left-2 px-1.5 py-0.5 rounded bg-[#18181b] border border-[#27272a] text-zinc-300 font-mono text-[9px] font-bold tracking-wider">
+              SAFE ZONE (10% - 85%)
             </span>
           </div>
 
           {/* Center Vertical Guide (X: 50%) */}
           {snapGuides.showVerticalCenter && (
-            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-0.5 border-l-2 border-dashed border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]">
-              <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-cyan-500 text-zinc-950 font-mono text-[9px] font-black">
+            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-0.5 border-l border-dashed border-zinc-400">
+              <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-[#18181b] border border-[#27272a] text-zinc-300 font-mono text-[9px] font-bold">
                 CENTER X (50%)
               </span>
             </div>
@@ -146,18 +146,18 @@ export function DraggableCaptionOverlay({
 
           {/* Center Horizontal Guide (Y: 50%) */}
           {snapGuides.showHorizontalCenter && (
-            <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-0.5 border-t-2 border-dashed border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]">
-              <span className="absolute left-2 top-2 px-1.5 py-0.5 rounded bg-cyan-500 text-zinc-950 font-mono text-[9px] font-black">
+            <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-0.5 border-t border-dashed border-zinc-400">
+              <span className="absolute left-2 top-2 px-1.5 py-0.5 rounded bg-[#18181b] border border-[#27272a] text-zinc-300 font-mono text-[9px] font-bold">
                 CENTER Y (50%)
               </span>
             </div>
           )}
 
-          {/* TikTok Safe Zone Guide (Y: 70%) */}
+          {/* Safe Zone Snap (Y: 70%) */}
           {snapGuides.showBottomSafe && (
-            <div className="absolute left-0 right-0 top-[70%] -translate-y-1/2 h-0.5 border-t-2 border-dashed border-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]">
-              <span className="absolute left-2 -top-5 px-1.5 py-0.5 rounded bg-amber-500 text-zinc-950 font-mono text-[9px] font-black">
-                TIKTOK SAFE SNAP (70%)
+            <div className="absolute left-0 right-0 top-[70%] -translate-y-1/2 h-0.5 border-t border-dashed border-zinc-400">
+              <span className="absolute left-2 -top-5 px-1.5 py-0.5 rounded bg-[#18181b] border border-[#27272a] text-zinc-300 font-mono text-[9px] font-bold">
+                SAFE SNAP (70%)
               </span>
             </div>
           )}
@@ -177,7 +177,7 @@ export function DraggableCaptionOverlay({
           enabled ? 'cursor-grab active:cursor-grabbing' : 'pointer-events-none'
         } ${
           isDragging
-            ? 'ring-2 ring-indigo-400 ring-offset-2 ring-offset-black/50 rounded-xl'
+            ? 'ring-1 ring-zinc-400 ring-offset-2 ring-offset-black/70 rounded-xl'
             : 'group-hover/player:ring-1 group-hover/player:ring-white/20 rounded-xl'
         }`}
       >
@@ -187,11 +187,11 @@ export function DraggableCaptionOverlay({
         {/* Transform Drag Handles & Coordinate Pill */}
         {enabled && (
           <div
-            className={`absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-zinc-950/90 border border-zinc-700 text-[9px] font-mono text-zinc-300 flex items-center gap-1 shadow-lg pointer-events-none transition-opacity ${
+            className={`absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-[#18181b] border border-[#27272a] text-[9px] font-mono text-zinc-300 flex items-center gap-1 shadow-lg pointer-events-none transition-opacity ${
               isDragging ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
             }`}
           >
-            <Move className="w-2.5 h-2.5 text-indigo-400" />
+            <Move className="w-2.5 h-2.5 text-zinc-400" />
             <span>X:{position.x}% Y:{position.y}%</span>
           </div>
         )}

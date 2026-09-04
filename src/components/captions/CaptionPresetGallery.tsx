@@ -18,8 +18,8 @@ const PRESET_STYLES: PresetItem[] = [
     id: 'bouncy-karaoke',
     name: 'Bouncy Karaoke',
     category: 'Viral Short-Form (CapCut Inspired)',
-    description: 'Bold sans, 8px black stroke, glowing yellow highlight with spring-bounce scale up.',
-    badge: 'Trending',
+    description: 'Bold sans, heavy black stroke, glowing yellow highlight with spring-bounce scale up.',
+    badge: 'Popular',
     sampleWords: [
       { text: 'WATCH', active: false },
       { text: 'THIS', active: true, color: '#facc15' },
@@ -27,10 +27,10 @@ const PRESET_STYLES: PresetItem[] = [
     ],
   },
   {
-    id: 'hormozi-pop',
-    name: 'Hormozi Pop',
-    category: 'Maximum Retention',
-    description: 'Ultra-heavy uppercase, massive contrast with vibrant neon green & red keywords.',
+    id: 'hormozi',
+    name: 'Hormozi',
+    category: 'Retention Heavy',
+    description: 'All-caps heavy punch, high-contrast black border with vibrant neon green & red keywords.',
     badge: 'High CTR',
     sampleWords: [
       { text: 'SCALE', active: true, color: '#22c55e' },
@@ -39,10 +39,10 @@ const PRESET_STYLES: PresetItem[] = [
     ],
   },
   {
-    id: 'minimal-boxed',
-    name: 'Minimal Boxed',
+    id: 'minimal-clean',
+    name: 'Minimal Clean',
     category: 'Modern Aesthetic',
-    description: 'Clean translucent dark pill container, crisp typography, and subtle cyan accents.',
+    description: 'Translucent dark pill container, crisp neutral typography, and subtle cyan accent.',
     badge: 'Clean',
     sampleWords: [
       { text: 'CLEAN', active: false },
@@ -64,15 +64,18 @@ export function CaptionPresetGallery({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <label className="text-xs font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          Viral Short-Form Caption Presets
+          <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
+          Word-by-Word Caption Presets
         </label>
-        <span className="text-[10px] text-amber-400 font-mono font-bold">3 Optimized</span>
+        <span className="text-[10px] text-zinc-400 font-mono">3 Presets</span>
       </div>
 
-      <div className="grid grid-cols-1 gap-2.5">
+      <div className="grid grid-cols-1 gap-2">
         {PRESET_STYLES.map((preset) => {
-          const isSelected = currentStyle === preset.id;
+          const isSelected =
+            currentStyle === preset.id ||
+            (preset.id === 'hormozi' && currentStyle === 'hormozi-pop') ||
+            (preset.id === 'minimal-clean' && currentStyle === 'minimal-boxed');
 
           return (
             <button
@@ -81,22 +84,22 @@ export function CaptionPresetGallery({
               onClick={() => onSelectStyle(preset.id)}
               className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col gap-2 relative overflow-hidden group ${
                 isSelected
-                  ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/10'
-                  : 'border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800/60 hover:border-zinc-700'
+                  ? 'border-zinc-400 bg-[#27272a] shadow-xs'
+                  : 'border-[#27272a] bg-[#18181b] hover:bg-[#202024] hover:border-zinc-700'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-white">{preset.name}</span>
                   {preset.badge && (
-                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-mono uppercase bg-[#121214] text-zinc-400 border border-[#27272a]">
                       {preset.badge}
                     </span>
                   )}
                 </div>
                 {isSelected && (
-                  <div className="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center text-white">
-                    <Check className="w-2.5 h-2.5" />
+                  <div className="w-4 h-4 rounded-full bg-zinc-200 flex items-center justify-center text-zinc-950">
+                    <Check className="w-2.5 h-2.5 stroke-[3]" />
                   </div>
                 )}
               </div>
@@ -106,7 +109,7 @@ export function CaptionPresetGallery({
               </p>
 
               {/* Interactive Live Mini-Preview of the Caption Style */}
-              <div className="h-10 w-full rounded-lg bg-black/70 border border-zinc-800/80 flex items-center justify-center px-3 overflow-hidden">
+              <div className="h-10 w-full rounded-lg bg-[#0d0d0e] border border-[#27272a] flex items-center justify-center px-3 overflow-hidden">
                 {preset.id === 'bouncy-karaoke' && (
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-black text-white [text-shadow:_0_2px_4px_#000]">
@@ -121,7 +124,7 @@ export function CaptionPresetGallery({
                   </div>
                 )}
 
-                {preset.id === 'hormozi-pop' && (
+                {preset.id === 'hormozi' && (
                   <div className="flex items-center gap-1.5 font-black uppercase text-xs">
                     <span className="text-emerald-400 scale-110 drop-shadow-[0_2px_4px_#000]">
                       SCALE
@@ -133,7 +136,7 @@ export function CaptionPresetGallery({
                   </div>
                 )}
 
-                {preset.id === 'minimal-boxed' && (
+                {preset.id === 'minimal-clean' && (
                   <div className="bg-zinc-900/90 px-3 py-1 rounded-lg border border-zinc-700 shadow flex items-center gap-1.5">
                     <span className="text-[11px] font-bold text-zinc-300">CLEAN</span>
                     <span className="text-[11px] font-bold text-sky-400 drop-shadow-[0_0_6px_rgba(56,189,248,0.8)]">
