@@ -91,7 +91,7 @@ export function InspectorPanel({
       {activeSubTab === 'captions' && (
         <div className="flex-1 overflow-y-auto p-3 space-y-4 bg-[#18181b]">
           <CaptionPresetGallery
-            currentStyle={timeline.activeSubtitleStyle || 'capcut-karaoke'}
+            currentStyle={timeline.activeSubtitleStyle || 'bouncy-karaoke'}
             onSelectStyle={onSubtitleStyleChange}
           />
 
@@ -101,7 +101,7 @@ export function InspectorPanel({
               currentTime={currentTime}
               onUpdateSubtitles={onUpdateSubtitles}
               onSeek={onSeek}
-              activeStyle={timeline.activeSubtitleStyle || 'capcut-karaoke'}
+              activeStyle={timeline.activeSubtitleStyle || 'bouncy-karaoke'}
             />
           </div>
         </div>

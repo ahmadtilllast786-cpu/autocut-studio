@@ -54,11 +54,10 @@ const LEFT_CATEGORIES = [
 ];
 
 const TRANSITION_PRESETS: Array<{ id: TransitionType; name: string; icon: string }> = [
-  { id: 'whip-pan', name: 'Whip Pan', icon: '⚡' },
-  { id: 'zoom-snap', name: 'Zoom Snap', icon: '🔍' },
-  { id: 'glitch', name: 'Glitch Jitter', icon: '👾' },
-  { id: 'cross-dissolve', name: 'Cross Dissolve', icon: '🔀' },
-  { id: 'slide-left', name: 'Slide Left', icon: '◀' },
+  { id: 'punch_in', name: 'Punch In', icon: '🥊' },
+  { id: 'whip_pan', name: 'Whip Pan', icon: '⚡' },
+  { id: 'ken_burns_zoom', name: 'Ken Burns Zoom', icon: '🔍' },
+  { id: 'white_flash', name: 'White Flash', icon: '✨' },
   { id: 'none', name: 'Hard Cut', icon: '•' },
 ];
 

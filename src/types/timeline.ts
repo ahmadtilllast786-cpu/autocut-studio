@@ -14,22 +14,17 @@ export interface MediaAsset {
   fileSize?: number; // in bytes
 }
 
-export type TransitionType =
-  | 'none'
-  | 'whip-pan'
-  | 'cross-dissolve'
-  | 'zoom-snap'
-  | 'glitch'
-  | 'slide-left';
+// 4 Programmatic Motion Presets for Short-Form Viral Retention
+export type ViralMotionPreset =
+  | 'punch_in'
+  | 'whip_pan'
+  | 'ken_burns_zoom'
+  | 'white_flash'
+  | 'none';
 
-export type MotionEffectType =
-  | 'none'
-  | 'ken-burns-zoom-in'
-  | 'ken-burns-zoom-out'
-  | 'pan-left'
-  | 'pan-right'
-  | 'shake'
-  | 'pulse';
+// Backwards-compatible alias
+export type MotionEffectType = ViralMotionPreset;
+export type TransitionType = ViralMotionPreset;
 
 export type ColorFilterType =
   | 'none'
@@ -40,22 +35,17 @@ export type ColorFilterType =
   | 'teal-orange'
   | 'cinematic';
 
+// Strict 3 Short-Form Caption Presets
 export type SubtitleStyleType =
-  | 'capcut-karaoke'
-  | 'premiere-minimal'
+  | 'bouncy-karaoke'
   | 'hormozi-pop'
-  | 'cyber-boxed'
-  | 'cinematic-subtitle'
-  | 'viral-highlight'
-  | 'minimal-white'
-  | 'neon-cyber'
-  | 'classic-box';
+  | 'minimal-boxed';
 
 export type AspectRatioType = '9:16' | '16:9' | '1:1';
 
 export interface CaptionPosition {
-  x: number; // percentage 0 - 100 (e.g. 50 = centered)
-  y: number; // percentage 0 - 100 (e.g. 72 = bottom safe zone)
+  x: number; // percentage 0 - 100 (default: 50)
+  y: number; // percentage 20 - 80 (central 60% safe zone)
 }
 
 export interface WordTimestamp {
@@ -84,13 +74,14 @@ export interface TimelineClip {
   id: string;
   assetId: string; // Must match MediaAsset.id
   startTime: number; // in seconds on the timeline
-  duration: number; // in seconds
+  duration: number; // in seconds (1.8s to 3.0s viral rule)
   sourceStart: number; // trim in-point on source asset
-  transition: TransitionType;
-  transitionDuration?: number; // default 0.4s
-  motionEffect: MotionEffectType;
+  transition: ViralMotionPreset;
+  transitionDuration?: number; // default 0.3s
+  motionEffect: ViralMotionPreset;
   colorFilter: ColorFilterType;
   volume?: number; // 0 to 1 for video's native audio
+  fitMode?: 'blur-pad' | 'cover'; // 9:16 adaptation
 }
 
 export interface AudioStemConfig {
@@ -107,8 +98,8 @@ export interface Timeline {
   totalDuration: number; // default 60 seconds
   fps: number; // default 30
   aspectRatio: AspectRatioType;
-  width: number; // 1080 (9:16), 1920 (16:9), 1080 (1:1)
-  height: number; // 1920 (9:16), 1080 (16:9), 1080 (1:1)
+  width: number; // 1080
+  height: number; // 1920
   clips: TimelineClip[];
   voiceover?: AudioStemConfig;
   backgroundMusic?: AudioStemConfig;
@@ -132,8 +123,14 @@ export const WordTimestampSchema = z.object({
 
 export const CaptionPositionSchema = z.object({
   x: z.number().min(0).max(100).default(50),
-  y: z.number().min(0).max(100).default(72),
+  y: z.number().min(20).max(80).default(70), // Central 60% safe zone lock
 });
+
+export const SubtitleStyleTypeSchema = z.enum([
+  'bouncy-karaoke',
+  'hormozi-pop',
+  'minimal-boxed',
+]);
 
 export const SubtitleSegmentSchema = z.object({
   id: z.string(),
@@ -141,41 +138,34 @@ export const SubtitleSegmentSchema = z.object({
   startTime: z.number().min(0),
   endTime: z.number().min(0),
   words: z.array(WordTimestampSchema),
-  style: z
-    .enum([
-      'capcut-karaoke',
-      'premiere-minimal',
-      'hormozi-pop',
-      'cyber-boxed',
-      'cinematic-subtitle',
-      'viral-highlight',
-      'minimal-white',
-      'neon-cyber',
-      'classic-box',
-    ])
-    .default('capcut-karaoke'),
+  style: SubtitleStyleTypeSchema.default('bouncy-karaoke'),
   position: CaptionPositionSchema.optional(),
   scale: z.number().min(0.5).max(3).default(1).optional(),
   rotation: z.number().default(0).optional(),
 });
 
+export const ViralMotionPresetSchema = z.enum([
+  'punch_in',
+  'whip_pan',
+  'ken_burns_zoom',
+  'white_flash',
+  'none',
+]);
+
 export const TimelineClipSchema = z.object({
   id: z.string(),
   assetId: z.string(),
   startTime: z.number().min(0),
-  duration: z.number().min(0.5),
+  duration: z.number().min(1.0).max(5.0).default(2.4), // Target 1.8s - 3.0s
   sourceStart: z.number().min(0).default(0),
-  transition: z
-    .enum(['none', 'whip-pan', 'cross-dissolve', 'zoom-snap', 'glitch', 'slide-left'])
-    .default('none'),
-  transitionDuration: z.number().min(0.1).max(2).default(0.4),
-  motionEffect: z
-    .enum(['none', 'ken-burns-zoom-in', 'ken-burns-zoom-out', 'pan-left', 'pan-right', 'shake', 'pulse'])
-    .default('none'),
+  transition: ViralMotionPresetSchema.default('punch_in'),
+  transitionDuration: z.number().min(0.1).max(1).default(0.3),
+  motionEffect: ViralMotionPresetSchema.default('ken_burns_zoom'),
   colorFilter: z
     .enum(['none', 'warm-vintage', 'high-contrast', 'noir', 'cyber', 'teal-orange', 'cinematic'])
     .default('none'),
   volume: z.number().min(0).max(1).default(0),
+  fitMode: z.enum(['blur-pad', 'cover']).default('blur-pad'),
 });
 
 export const AudioStemConfigSchema = z.object({
@@ -183,24 +173,12 @@ export const AudioStemConfigSchema = z.object({
   volume: z.number().min(0).max(1).default(1),
   ducking: z.boolean().default(false),
   duckingAttenuationDb: z.number().default(-16),
-  fadeInDuration: z.number().min(0).default(0.5),
-  fadeOutDuration: z.number().min(0).default(1.0),
+  fadeInDuration: z.number().min(0).default(0.2),
+  fadeOutDuration: z.number().min(0).default(0.5),
 });
 
-export const SubtitleStyleTypeSchema = z.enum([
-  'capcut-karaoke',
-  'premiere-minimal',
-  'hormozi-pop',
-  'cyber-boxed',
-  'cinematic-subtitle',
-  'viral-highlight',
-  'minimal-white',
-  'neon-cyber',
-  'classic-box',
-]);
-
 export const TimelineSchema = z.object({
-  title: z.string().default('AutoCut Vertical Edit'),
+  title: z.string().default('AutoCut 9:16 Viral Edit'),
   totalDuration: z.number().min(5).max(180).default(60),
   fps: z.number().default(30),
   aspectRatio: z.enum(['9:16', '16:9', '1:1']).default('9:16'),

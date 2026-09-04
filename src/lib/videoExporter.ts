@@ -254,17 +254,39 @@ export function drawTimelineFrame(
     applyTransitionTransform(ctx, width, height, clip.transition, transitionTime / transDur);
   }
 
-  // Draw Asset Content
+  // Draw Asset Content with 9:16 Blur-Padding support
   const thumbEl = assetElements.get(`${clip.assetId}_thumb`);
+  const isBlurPad = clip.fitMode !== 'cover' && timeline.aspectRatio === '9:16';
+
   if (el instanceof HTMLImageElement && el.complete && el.naturalWidth > 0) {
-    drawCoverImage(ctx, el, width, height);
+    if (isBlurPad && el.naturalWidth / el.naturalHeight > 9 / 16) {
+      // Blur-pad background
+      ctx.save();
+      ctx.filter = 'blur(40px) brightness(0.6)';
+      drawCoverImage(ctx, el, width, height);
+      ctx.restore();
+      drawContainImage(ctx, el, width, height);
+    } else {
+      drawCoverImage(ctx, el, width, height);
+    }
   } else if (el instanceof HTMLVideoElement && el.readyState >= 2) {
     // Seek video to corresponding position
     const targetVideoTime = clip.sourceStart + (t - clip.startTime);
     if (Math.abs(el.currentTime - targetVideoTime) > 0.3) {
       el.currentTime = targetVideoTime;
     }
-    drawCoverVideo(ctx, el, width, height);
+    const vidW = el.videoWidth || 1080;
+    const vidH = el.videoHeight || 1920;
+    if (isBlurPad && vidW / vidH > 9 / 16) {
+      // Blur-pad background
+      ctx.save();
+      ctx.filter = 'blur(40px) brightness(0.6)';
+      drawCoverVideo(ctx, el, width, height);
+      ctx.restore();
+      drawContainVideo(ctx, el, width, height);
+    } else {
+      drawCoverVideo(ctx, el, width, height);
+    }
   } else if (thumbEl instanceof HTMLImageElement && thumbEl.complete && thumbEl.naturalWidth > 0) {
     drawCoverImage(ctx, thumbEl, width, height);
   } else {
@@ -274,8 +296,8 @@ export function drawTimelineFrame(
 
   ctx.restore();
 
-  // Render Subtitles (Baked-in Alex Hormozi style)
-  drawSubtitlesOnCanvas(ctx, width, height, t, timeline.subtitles);
+  // Render Subtitles (Locked to central 60% safe zone)
+  drawSubtitlesOnCanvas(ctx, width, height, t, timeline.subtitles, timeline.activeSubtitleStyle);
 }
 
 function applyColorFilterToCtx(ctx: CanvasRenderingContext2D, filter: string) {
@@ -316,13 +338,30 @@ function applyMotionTransform(
   ctx.translate(cx, cy);
 
   switch (motion) {
+    case 'punch_in': {
+      const punch = progress < 0.25 ? 1.18 - progress * 0.15 : 1.14 + progress * 0.03;
+      ctx.scale(punch, punch);
+      break;
+    }
+    case 'whip_pan': {
+      const panOffset = (1 - Math.min(1, progress * 2.8)) * 36;
+      ctx.translate(panOffset, 0);
+      ctx.scale(1.06, 1.06);
+      break;
+    }
+    case 'ken_burns_zoom':
     case 'ken-burns-zoom-in': {
       const scale = 1.0 + progress * 0.15; // 1.00 -> 1.15
       ctx.scale(scale, scale);
       break;
     }
+    case 'white_flash': {
+      const scale = 1.0 + progress * 0.05;
+      ctx.scale(scale, scale);
+      break;
+    }
     case 'ken-burns-zoom-out': {
-      const scale = 1.15 - progress * 0.15; // 1.15 -> 1.00
+      const scale = 1.15 - progress * 0.15;
       ctx.scale(scale, scale);
       break;
     }
@@ -362,17 +401,24 @@ function applyTransitionTransform(
 ) {
   const t = 1 - transProgress; // 1 -> 0
   switch (transition) {
-    case 'cross-dissolve':
-      ctx.globalAlpha = transProgress;
-      break;
-    case 'whip-pan': {
-      const shiftX = t * width * 0.8;
-      ctx.translate(shiftX, 0);
-      ctx.globalAlpha = 0.5 + transProgress * 0.5;
+    case 'white_flash': {
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = Math.max(0, 1 - transProgress * 3.5);
+      ctx.fillRect(-width, -height, width * 3, height * 3);
+      ctx.restore();
       break;
     }
+    case 'whip_pan':
+    case 'whip-pan': {
+      const shiftX = t * width * 0.5;
+      ctx.translate(shiftX, 0);
+      ctx.globalAlpha = 0.6 + transProgress * 0.4;
+      break;
+    }
+    case 'punch_in':
     case 'zoom-snap': {
-      const scale = 1.0 + t * 0.35;
+      const scale = 1.0 + t * 0.25;
       const cx = width / 2;
       const cy = height / 2;
       ctx.translate(cx, cy);
@@ -380,6 +426,9 @@ function applyTransitionTransform(
       ctx.translate(-cx, -cy);
       break;
     }
+    case 'cross-dissolve':
+      ctx.globalAlpha = transProgress;
+      break;
     case 'glitch': {
       const jitterX = (Math.random() - 0.5) * 30 * t;
       const jitterY = (Math.random() - 0.5) * 15 * t;
@@ -421,6 +470,34 @@ function drawCoverImage(
   ctx.drawImage(img, offsetX, offsetY, renderW, renderH);
 }
 
+function drawContainImage(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  canvasW: number,
+  canvasH: number
+) {
+  const imgRatio = img.naturalWidth / img.naturalHeight;
+  const canvasRatio = canvasW / canvasH;
+  let renderW: number;
+  let renderH: number;
+  let offsetX: number;
+  let offsetY: number;
+
+  if (imgRatio > canvasRatio) {
+    renderW = canvasW;
+    renderH = canvasW / imgRatio;
+    offsetX = 0;
+    offsetY = (canvasH - renderH) / 2;
+  } else {
+    renderH = canvasH;
+    renderW = canvasH * imgRatio;
+    offsetX = (canvasW - renderW) / 2;
+    offsetY = 0;
+  }
+
+  ctx.drawImage(img, offsetX, offsetY, renderW, renderH);
+}
+
 function drawCoverVideo(
   ctx: CanvasRenderingContext2D,
   vid: HTMLVideoElement,
@@ -455,16 +532,51 @@ function drawCoverVideo(
   }
 }
 
+function drawContainVideo(
+  ctx: CanvasRenderingContext2D,
+  vid: HTMLVideoElement,
+  canvasW: number,
+  canvasH: number
+) {
+  const vidW = vid.videoWidth || 1080;
+  const vidH = vid.videoHeight || 1920;
+  const vidRatio = vidW / vidH;
+  const canvasRatio = canvasW / canvasH;
+  let renderW: number;
+  let renderH: number;
+  let offsetX: number;
+  let offsetY: number;
+
+  if (vidRatio > canvasRatio) {
+    renderW = canvasW;
+    renderH = canvasW / vidRatio;
+    offsetX = 0;
+    offsetY = (canvasH - renderH) / 2;
+  } else {
+    renderH = canvasH;
+    renderW = canvasH * vidRatio;
+    offsetX = (canvasW - renderW) / 2;
+    offsetY = 0;
+  }
+
+  try {
+    ctx.drawImage(vid, offsetX, offsetY, renderW, renderH);
+  } catch {
+    // Video frame not ready yet
+  }
+}
+
 /**
- * Renders short-form punchy dynamic captions (Alex Hormozi / MrBeast viral style)
- * with animated active-word highlighting directly onto the canvas frame.
+ * Renders short-form punchy dynamic captions directly onto the canvas frame
+ * locked strictly inside the central 60% safe zone (Y: 20% - 80%).
  */
 function drawSubtitlesOnCanvas(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
   t: number,
-  subtitles: Timeline['subtitles']
+  subtitles: Timeline['subtitles'],
+  activeStyle: Timeline['activeSubtitleStyle'] = 'bouncy-karaoke'
 ) {
   if (!subtitles || subtitles.length === 0) return;
 
@@ -474,11 +586,15 @@ function drawSubtitlesOnCanvas(
 
   if (!currentSegment) return;
 
+  const style = currentSegment.style || activeStyle || 'bouncy-karaoke';
+
   ctx.save();
 
-  // Position captions based on relative percentages
-  const relX = (currentSegment.position?.x ?? 50) / 100;
-  const relY = (currentSegment.position?.y ?? 72) / 100;
+  // Position captions locked to central 60% vertical safe zone (Y: 20% to 80%)
+  const rawRelX = (currentSegment.position?.x ?? 50) / 100;
+  const rawRelY = (currentSegment.position?.y ?? 70) / 100;
+  const relX = Math.max(0.1, Math.min(0.9, rawRelX));
+  const relY = Math.max(0.20, Math.min(0.80, rawRelY)); // Central 60% lock
   const posY = height * relY;
 
   ctx.textAlign = 'center';
@@ -490,10 +606,11 @@ function drawSubtitlesOnCanvas(
   // Calculate word widths for centered inline layout
   const words = currentSegment.words;
   const spaceWidth = ctx.measureText(' ').width;
-  const wordMetrics = words.map((w) => ({
+  const wordMetrics = words.map((w, idx) => ({
     ...w,
     width: ctx.measureText(w.word.toUpperCase()).width,
     isActive: t >= w.start && t <= w.end,
+    wordIdx: idx,
   }));
 
   const totalTextWidth =
@@ -501,10 +618,10 @@ function drawSubtitlesOnCanvas(
 
   let startX = (width * relX) - (totalTextWidth / 2);
 
-  // Background subtle pill backdrop
+  // Background pill backdrop
   const pillPaddingX = 26;
   const pillPaddingY = 16;
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillStyle = style === 'minimal-boxed' ? 'rgba(9, 9, 11, 0.88)' : 'rgba(0, 0, 0, 0.72)';
   ctx.beginPath();
   ctx.roundRect(
     startX - pillPaddingX,
@@ -514,23 +631,36 @@ function drawSubtitlesOnCanvas(
     20
   );
   ctx.fill();
+  if (style === 'minimal-boxed') {
+    ctx.strokeStyle = 'rgba(63, 63, 70, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
 
-  // Render each word
+  // Render each word according to selected style
   for (const item of wordMetrics) {
     const wordX = startX + item.width / 2;
 
     ctx.save();
     if (item.isActive) {
       // Pop / scale active word
+      const scaleVal = style === 'hormozi-pop' ? 1.20 : 1.15;
       ctx.translate(wordX, posY);
-      ctx.scale(1.15, 1.15);
+      ctx.scale(scaleVal, scaleVal);
       ctx.translate(-wordX, -posY);
 
       ctx.lineWidth = 10;
       ctx.strokeStyle = '#000000';
       ctx.strokeText(item.word.toUpperCase(), wordX, posY);
 
-      ctx.fillStyle = item.color || '#facc15';
+      let highlightColor = '#facc15'; // Default bouncy-karaoke yellow
+      if (style === 'hormozi-pop') {
+        highlightColor = item.wordIdx % 2 === 0 ? '#22c55e' : '#ef4444';
+      } else if (style === 'minimal-boxed') {
+        highlightColor = '#38bdf8';
+      }
+
+      ctx.fillStyle = item.color || highlightColor;
       ctx.fillText(item.word.toUpperCase(), wordX, posY);
     } else {
       ctx.lineWidth = 8;

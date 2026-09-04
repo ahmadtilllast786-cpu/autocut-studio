@@ -45,7 +45,7 @@ export function normalizeToStrictWords(
 export function paginateWordsWithRemotion(
   words: StrictWhisperWord[],
   mode: CaptionPagingMode = '1-to-3-bursts',
-  style: SubtitleStyleType = 'capcut-karaoke'
+  style: SubtitleStyleType = 'bouncy-karaoke'
 ): SubtitleSegment[] {
   if (!words || words.length === 0) return [];
 

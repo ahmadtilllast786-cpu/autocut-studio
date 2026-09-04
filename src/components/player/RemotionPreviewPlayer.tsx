@@ -61,8 +61,8 @@ export function RemotionPreviewPlayer({
 
   const totalDuration = timeline.totalDuration || 60;
   const speechIntervals = extractSpeechIntervals(timeline.subtitles);
-  const activeStyle = timeline.activeSubtitleStyle || 'capcut-karaoke';
-  const captionPos = timeline.captionPosition || { x: 50, y: 72 };
+  const activeStyle = timeline.activeSubtitleStyle || 'bouncy-karaoke';
+  const captionPos = timeline.captionPosition || { x: 50, y: 70 };
   const currentRatio = timeline.aspectRatio || '9:16';
 
   // Measure viewport dimensions dynamically for drag coordinates
@@ -188,20 +188,36 @@ export function RemotionPreviewPlayer({
     : 0;
 
   const getMotionTransform = () => {
-    if (!activeClip || isVideo) return '';
-    switch (activeClip.motionEffect) {
-      case 'ken-burns-zoom-in':
+    if (!activeClip) return '';
+    const motion = activeClip.motionEffect;
+    switch (motion) {
+      case 'punch_in': {
+        // High impact punch: rapid zoom pop settling into punchy scale
+        const punch = clipProgress < 0.25 ? 1.18 - clipProgress * 0.15 : 1.14 + clipProgress * 0.03;
+        return `scale(${punch.toFixed(3)})`;
+      }
+      case 'whip_pan': {
+        // Lateral whip pan offset decaying rapidly into centered stability
+        const panOffset = (1 - Math.min(1, clipProgress * 2.8)) * 36;
+        return `translateX(${panOffset.toFixed(1)}px) scale(1.06)`;
+      }
+      case 'ken_burns_zoom': {
+        // Continuous smooth zoom-in for high retention
+        return `scale(${(1.0 + clipProgress * 0.15).toFixed(3)})`;
+      }
+      case 'white_flash': {
+        // Subtle drift while flash occurs
+        return `scale(${(1.0 + clipProgress * 0.05).toFixed(3)})`;
+      }
+      // Backwards-compatible legacy fallbacks
+      case 'ken-burns-zoom-in' as string:
         return `scale(${1.0 + clipProgress * 0.18})`;
-      case 'ken-burns-zoom-out':
+      case 'ken-burns-zoom-out' as string:
         return `scale(${1.18 - clipProgress * 0.18})`;
-      case 'pan-left':
+      case 'pan-left' as string:
         return `translateX(${(0.5 - clipProgress) * 35}px) scale(1.1)`;
-      case 'pan-right':
+      case 'pan-right' as string:
         return `translateX(${(clipProgress - 0.5) * 35}px) scale(1.1)`;
-      case 'pulse':
-        return `scale(${1.0 + Math.sin(clipProgress * Math.PI * 2) * 0.06})`;
-      case 'shake':
-        return `translateX(${Math.sin(clipProgress * 30) * 4}px)`;
       default:
         return 'scale(1.0)';
     }
@@ -326,34 +342,73 @@ export function RemotionPreviewPlayer({
         ref={viewportRef}
         className={`relative w-full flex-1 ${getViewportAspectClass()} bg-black rounded-2xl overflow-hidden shadow-2xl border-2 border-zinc-800 flex items-center justify-center select-none group/player`}
       >
-        {/* Layer 1: Visual Media Content */}
+        {/* Layer 1: Visual Media Content with 9:16 Blur-Padding */}
         <div
           className={`w-full h-full relative overflow-hidden transition-all duration-300 ${getColorFilterClass()}`}
         >
+          {/* Background Blurred Backdrop for Blur-Padding Non-Vertical Media */}
+          {activeClip?.fitMode !== 'cover' && (
+            <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
+              {isVideo && activeAsset && !videoErrorMap[activeAsset.id] ? (
+                <video
+                  src={activeAsset.url}
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover blur-2xl scale-130 opacity-55"
+                />
+              ) : activeAsset?.thumbnailUrl || activeAsset?.type === 'image' ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={activeAsset.type === 'image' ? activeAsset.url : activeAsset.thumbnailUrl}
+                  alt=""
+                  className="w-full h-full object-cover blur-2xl scale-130 opacity-55"
+                />
+              ) : null}
+              <div className="absolute inset-0 bg-black/30" />
+            </div>
+          )}
+
+          {/* Foreground Crisp Media Element with Motion Presets Applied */}
           {isVideo && activeAsset && !videoErrorMap[activeAsset.id] ? (
-            <video
-              ref={videoElementRef}
-              src={activeAsset.url}
-              muted
-              playsInline
-              onError={() => {
-                if (activeAsset) {
-                  setVideoErrorMap((prev) => ({ ...prev, [activeAsset.id]: true }));
-                }
-              }}
-              className="w-full h-full object-cover pointer-events-none"
-            />
-          ) : activeAsset?.thumbnailUrl || activeAsset?.type === 'image' ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={activeAsset.type === 'image' ? activeAsset.url : activeAsset.thumbnailUrl}
-              alt={activeAsset.name}
+            <div
               style={{
                 transform: getMotionTransform(),
-                transition: 'transform 0.1s linear',
+                transition: 'transform 0.08s linear',
               }}
-              className="w-full h-full object-cover pointer-events-none"
-            />
+              className="w-full h-full relative z-[1] flex items-center justify-center"
+            >
+              <video
+                ref={videoElementRef}
+                src={activeAsset.url}
+                muted
+                playsInline
+                onError={() => {
+                  if (activeAsset) {
+                    setVideoErrorMap((prev) => ({ ...prev, [activeAsset.id]: true }));
+                  }
+                }}
+                className={`w-full h-full pointer-events-none ${
+                  activeClip?.fitMode === 'cover' ? 'object-cover' : 'object-contain'
+                }`}
+              />
+            </div>
+          ) : activeAsset?.thumbnailUrl || activeAsset?.type === 'image' ? (
+            <div
+              style={{
+                transform: getMotionTransform(),
+                transition: 'transform 0.08s linear',
+              }}
+              className="w-full h-full relative z-[1] flex items-center justify-center"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={activeAsset.type === 'image' ? activeAsset.url : activeAsset.thumbnailUrl}
+                alt={activeAsset.name}
+                className={`w-full h-full pointer-events-none ${
+                  activeClip?.fitMode === 'cover' ? 'object-cover' : 'object-contain'
+                }`}
+              />
+            </div>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-zinc-950 text-zinc-600">
               <Sparkles className="w-8 h-8 mb-2 text-indigo-400 opacity-40 animate-pulse" />
@@ -362,17 +417,34 @@ export function RemotionPreviewPlayer({
             </div>
           )}
 
-          {/* Transition Visual Overlay (Whip-pan, Zoom-snap, Glitch) */}
-          {isTransitioning && activeClip && (
-            <div
-              className={`absolute inset-0 pointer-events-none z-10 ${
-                activeClip.transition === 'glitch'
-                  ? 'backdrop-invert mix-blend-difference'
-                  : activeClip.transition === 'whip-pan'
-                  ? 'backdrop-blur-sm bg-black/40'
-                  : 'bg-black/30 backdrop-blur-[2px]'
-              }`}
-            />
+          {/* 4 Viral Motion & Transition Overlays */}
+          {activeClip && (
+            <>
+              {/* White Flash Effect (Spikes to pure white then fades in 0.25s) */}
+              {(activeClip.transition === 'white_flash' || activeClip.motionEffect === 'white_flash') &&
+                transitionProgress < 1 && (
+                  <div
+                    className="absolute inset-0 pointer-events-none z-10 bg-white"
+                    style={{ opacity: Math.max(0, 1 - transitionProgress * 3.5) }}
+                  />
+                )}
+
+              {/* Whip Pan Motion Blur Overlay */}
+              {activeClip.transition === 'whip_pan' && transitionProgress < 1 && (
+                <div
+                  className="absolute inset-0 pointer-events-none z-10 backdrop-blur-md bg-black/25"
+                  style={{ opacity: Math.max(0, 1 - transitionProgress * 1.8) }}
+                />
+              )}
+
+              {/* Punch In Vignette Snap */}
+              {activeClip.transition === 'punch_in' && transitionProgress < 0.6 && (
+                <div
+                  className="absolute inset-0 pointer-events-none z-10 bg-black/30"
+                  style={{ opacity: Math.max(0, 0.6 - transitionProgress) }}
+                />
+              )}
+            </>
           )}
         </div>
 

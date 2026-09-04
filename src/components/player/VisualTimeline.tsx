@@ -49,8 +49,15 @@ export function VisualTimeline({ timeline, currentTime, onSeek, assets }: Visual
 
   const getTransitionIcon = (trans: string) => {
     switch (trans) {
+      case 'punch_in':
+        return '🥊 Punch';
+      case 'whip_pan':
       case 'whip-pan':
         return '⚡ Whip';
+      case 'ken_burns_zoom':
+        return '🔍 Zoom';
+      case 'white_flash':
+        return '✨ Flash';
       case 'zoom-snap':
         return '🔍 Snap';
       case 'glitch':

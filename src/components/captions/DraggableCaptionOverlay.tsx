@@ -66,7 +66,8 @@ export function DraggableCaptionOverlay({
       const deltaPctY = (deltaY / containerHeight) * 100;
 
       let newX = Math.max(10, Math.min(90, dragStartRef.current.initialPosX + deltaPctX));
-      let newY = Math.max(10, Math.min(90, dragStartRef.current.initialPosY + deltaPctY));
+      // Strict Safe-Zone Lock: Clamp Y within central 60% (20% to 80%) to clear TikTok/Reels UI
+      let newY = Math.max(20, Math.min(80, dragStartRef.current.initialPosY + deltaPctY));
 
       const newSnapGuides = {
         showVerticalCenter: false,
@@ -87,9 +88,9 @@ export function DraggableCaptionOverlay({
         newSnapGuides.showHorizontalCenter = true;
       }
 
-      // 3. TikTok / Reels Safe Zone Snapping (Y: 72% bottom safe zone)
-      if (Math.abs(newY - 72) <= SNAP_THRESHOLD_PCT) {
-        newY = 72;
+      // 3. TikTok / Reels Safe Zone Snapping (Y: 70% bottom safe zone)
+      if (Math.abs(newY - 70) <= SNAP_THRESHOLD_PCT) {
+        newY = 70;
         newSnapGuides.showBottomSafe = true;
       }
 
@@ -127,6 +128,13 @@ export function DraggableCaptionOverlay({
       {/* SNAP GUIDELINES OVERLAY */}
       {isDragging && (
         <div className="absolute inset-0 pointer-events-none z-30">
+          {/* Central 60% Safe-Zone Box (Top 20% to Bottom 80%) */}
+          <div className="absolute left-2 right-2 top-[20%] bottom-[20%] border-2 border-dashed border-amber-500/40 rounded-lg pointer-events-none bg-amber-500/5">
+            <span className="absolute top-1 left-2 px-1.5 py-0.5 rounded bg-amber-500/90 text-zinc-950 font-mono text-[9px] font-black tracking-wider">
+              CENTRAL 60% SAFE ZONE (20% - 80%)
+            </span>
+          </div>
+
           {/* Center Vertical Guide (X: 50%) */}
           {snapGuides.showVerticalCenter && (
             <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-0.5 border-l-2 border-dashed border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]">
@@ -145,11 +153,11 @@ export function DraggableCaptionOverlay({
             </div>
           )}
 
-          {/* TikTok Safe Zone Guide (Y: 72%) */}
+          {/* TikTok Safe Zone Guide (Y: 70%) */}
           {snapGuides.showBottomSafe && (
-            <div className="absolute left-0 right-0 top-[72%] -translate-y-1/2 h-0.5 border-t-2 border-dashed border-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]">
+            <div className="absolute left-0 right-0 top-[70%] -translate-y-1/2 h-0.5 border-t-2 border-dashed border-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]">
               <span className="absolute left-2 -top-5 px-1.5 py-0.5 rounded bg-amber-500 text-zinc-950 font-mono text-[9px] font-black">
-                TIKTOK SAFE ZONE (72%)
+                TIKTOK SAFE SNAP (70%)
               </span>
             </div>
           )}

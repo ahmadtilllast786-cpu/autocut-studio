@@ -15,11 +15,11 @@ interface PresetItem {
 
 const PRESET_STYLES: PresetItem[] = [
   {
-    id: 'capcut-karaoke',
-    name: 'CapCut Bouncy Karaoke',
-    category: 'Viral Short-Form',
-    description: 'Bold sans, 8px black stroke, glowing yellow highlight with spring-bounce pop.',
-    badge: 'Popular',
+    id: 'bouncy-karaoke',
+    name: 'Bouncy Karaoke',
+    category: 'Viral Short-Form (CapCut Inspired)',
+    description: 'Bold sans, 8px black stroke, glowing yellow highlight with spring-bounce scale up.',
+    badge: 'Trending',
     sampleWords: [
       { text: 'WATCH', active: false },
       { text: 'THIS', active: true, color: '#facc15' },
@@ -29,8 +29,8 @@ const PRESET_STYLES: PresetItem[] = [
   {
     id: 'hormozi-pop',
     name: 'Hormozi Pop',
-    category: 'Retention Heavy',
-    description: 'Uppercase heavy, high-contrast black border with bold green & red accents.',
+    category: 'Maximum Retention',
+    description: 'Ultra-heavy uppercase, massive contrast with vibrant neon green & red keywords.',
     badge: 'High CTR',
     sampleWords: [
       { text: 'SCALE', active: true, color: '#22c55e' },
@@ -39,36 +39,14 @@ const PRESET_STYLES: PresetItem[] = [
     ],
   },
   {
-    id: 'premiere-minimal',
-    name: 'Premiere Minimal Clean',
-    category: 'Professional',
-    description: 'Neutral Inter font, clean drop shadow, high readability sentence blocks.',
+    id: 'minimal-boxed',
+    name: 'Minimal Boxed',
+    category: 'Modern Aesthetic',
+    description: 'Clean translucent dark pill container, crisp typography, and subtle cyan accents.',
+    badge: 'Clean',
     sampleWords: [
-      { text: 'Sleek', active: false },
-      { text: 'clean', active: true, color: '#ffffff' },
-      { text: 'minimal', active: false },
-    ],
-  },
-  {
-    id: 'cyber-boxed',
-    name: 'Cyber / Boxed',
-    category: 'Tech & Gaming',
-    description: 'Dark pill badge backdrop, uppercase monospace, and glowing cyan accents.',
-    badge: 'Sci-Fi',
-    sampleWords: [
-      { text: 'SYSTEM', active: false },
-      { text: 'ONLINE', active: true, color: '#06b6d4' },
-    ],
-  },
-  {
-    id: 'cinematic-subtitle',
-    name: 'Cinematic Subtitle',
-    category: 'Narrative & Film',
-    description: 'Bottom-third condensed serif, subtle dark underline, elegant aesthetic.',
-    sampleWords: [
-      { text: 'In', active: false },
-      { text: 'the', active: false },
-      { text: 'shadows', active: true, color: '#f8fafc' },
+      { text: 'CLEAN', active: false },
+      { text: 'MODERN', active: true, color: '#38bdf8' },
     ],
   },
 ];
@@ -87,12 +65,12 @@ export function CaptionPresetGallery({
       <div className="flex items-center justify-between">
         <label className="text-xs font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          Preset Style Library (CapCut & Premiere)
+          Viral Short-Form Caption Presets
         </label>
-        <span className="text-[10px] text-zinc-500 font-mono">5 Presets</span>
+        <span className="text-[10px] text-amber-400 font-mono font-bold">3 Optimized</span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2.5">
+      <div className="grid grid-cols-1 gap-2.5">
         {PRESET_STYLES.map((preset) => {
           const isSelected = currentStyle === preset.id;
 
@@ -128,8 +106,8 @@ export function CaptionPresetGallery({
               </p>
 
               {/* Interactive Live Mini-Preview of the Caption Style */}
-              <div className="h-10 w-full rounded-lg bg-black/60 border border-zinc-800/80 flex items-center justify-center px-3 overflow-hidden">
-                {preset.id === 'capcut-karaoke' && (
+              <div className="h-10 w-full rounded-lg bg-black/70 border border-zinc-800/80 flex items-center justify-center px-3 overflow-hidden">
+                {preset.id === 'bouncy-karaoke' && (
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-black text-white [text-shadow:_0_2px_4px_#000]">
                       WATCH
@@ -155,27 +133,12 @@ export function CaptionPresetGallery({
                   </div>
                 )}
 
-                {preset.id === 'premiere-minimal' && (
-                  <div className="text-xs font-medium text-white/95 tracking-normal drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
-                    Clean, readable and centered
-                  </div>
-                )}
-
-                {preset.id === 'cyber-boxed' && (
-                  <div className="bg-zinc-950/90 px-2.5 py-1 rounded-md border border-cyan-500/40 shadow-[0_0_10px_rgba(6,182,212,0.3)] flex items-center gap-1.5">
-                    <span className="text-[11px] font-mono font-bold text-zinc-400">SYS</span>
-                    <span className="text-[11px] font-mono font-bold text-cyan-300 drop-shadow-[0_0_6px_rgba(6,182,212,0.8)]">
-                      ONLINE
+                {preset.id === 'minimal-boxed' && (
+                  <div className="bg-zinc-900/90 px-3 py-1 rounded-lg border border-zinc-700 shadow flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold text-zinc-300">CLEAN</span>
+                    <span className="text-[11px] font-bold text-sky-400 drop-shadow-[0_0_6px_rgba(56,189,248,0.8)]">
+                      MODERN
                     </span>
-                  </div>
-                )}
-
-                {preset.id === 'cinematic-subtitle' && (
-                  <div className="flex flex-col items-center">
-                    <span className="text-xs italic font-serif text-slate-200 tracking-wider">
-                      In the dramatic twilight
-                    </span>
-                    <div className="w-12 h-0.5 bg-slate-500/40 mt-0.5" />
                   </div>
                 )}
               </div>

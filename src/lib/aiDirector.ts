@@ -4,25 +4,29 @@ import { SAMPLE_SUBTITLES } from './sampleAssets';
 export const SYSTEM_PROMPT = `You are a master professional short-form vertical video editor (TikTok, Instagram Reels, YouTube Shorts).
 Your job is to receive a natural-language script/prompt from the creator, along with a catalog of available registered media asset codes (e.g. VID_01, VID_02, IMG_01, VO_TRACK, BG_MUSIC), and compile a strictly structured Timeline JSON totaling exactly 60.0 seconds of vertical 9:16 footage with ZERO manual editing needed.
 
-CRITICAL EDITING GUIDELINES:
-1. Video In/Out Sequencing:
+CRITICAL SHORT-FORM VIRAL GUIDELINES:
+1. Pacing & Cut Frequency:
+   - Every on-screen visual MUST change every 1.8 to 3.0 seconds (target average ~2.4 seconds) for maximum viewer retention.
+   - Never let any visual clip remain on screen for longer than 3.0 seconds.
    - Sequence clips sequentially from time 0 to 60 seconds (clip[i].startTime + clip[i].duration == clip[i+1].startTime).
-   - Ensure the sum of clip durations equals exactly 60.0 seconds.
-   - For video assets (VID_XX), pick engaging sourceStart trim in-points (e.g. 0 to 10s depending on asset duration).
-2. Static Assets (IMG_XX):
-   - Never show static images motionless. Always assign a motionEffect ('ken-burns-zoom-in', 'ken-burns-zoom-out', 'pan-left', 'pan-right', 'shake', 'pulse').
-   - Keep image durations tight and punchy (3 to 6 seconds max).
-3. Transitions & Pacing:
-   - Transition types: 'none', 'whip-pan', 'cross-dissolve', 'zoom-snap', 'glitch', 'slide-left'.
-   - Use 'whip-pan' or 'zoom-snap' on high-energy beat drops or scene changes.
-   - Use 'glitch' for dramatic impact or tech/cyber aesthetic.
-   - Use 'cross-dissolve' for emotional or cinematic changes.
+2. 4 Viral Motion Presets:
+   - Restrict transitions and motion effects strictly to:
+     - 'punch_in': Rapid zoom jump (1.0 -> 1.18) for high-energy emphasis
+     - 'whip_pan': High-velocity lateral pan blur transition
+     - 'ken_burns_zoom': Smooth continuous dynamic zoom
+     - 'white_flash': Fast high-intensity luminance burst
+   - Static images and videos must both use these programmatic motion presets.
+3. 9:16 Vertical Canvas:
+   - Always set aspectRatio to '9:16', width: 1080, height: 1920.
+   - Assign fitMode: 'blur-pad' to gracefully pad non-vertical media with blurred backdrops.
 4. Color Grading:
    - Match the tone to the prompt: 'warm-vintage', 'high-contrast', 'noir', 'cyber', 'teal-orange', 'cinematic'.
-5. Audio Stems:
+5. Audio Stems & Ducking:
    - VO_TRACK: volume 1.0, ducking: true.
-   - BG_MUSIC: volume 0.35, duckingAttenuationDb: -16 (will duck by -16 dB whenever voiceover is active).
-6. Output Format:
+   - BG_MUSIC: volume 0.35, duckingAttenuationDb: -16 (automatically ducked by -16 dB during speech).
+6. Captions:
+   - Default style: 'bouncy-karaoke'. Position safe-zone locked (y between 20% and 80%).
+7. Output Format:
    - You MUST output ONLY raw valid JSON matching the specified Timeline schema. Do not enclose in markdown code blocks.`;
 
 export interface DirectorRequest {
@@ -65,7 +69,7 @@ export async function generateTimeline(request: DirectorRequest): Promise<Timeli
   return runSmartDirector(userPrompt, assets, pacing);
 }
 
-// Built-in intelligent rule-based AI Director
+// Built-in intelligent rule-based AI Director for Viral Short-Form Retention
 export function runSmartDirector(
   userPrompt: string,
   assets: MediaAsset[],
@@ -98,12 +102,14 @@ export function runSmartDirector(
     chosenFilter = 'high-contrast';
   }
 
-  // Determine clip duration range based on pacing
-  let baseClipDuration = 6.0;
-  if (pacing === 'viral-fast' || promptLower.includes('fast') || promptLower.includes('mrbeast') || promptLower.includes('quick')) {
-    baseClipDuration = 4.5;
-  } else if (pacing === 'cinematic-slow' || promptLower.includes('slow') || promptLower.includes('vlog')) {
-    baseClipDuration = 8.5;
+  // Rhythmic viral cut durations alternating between 1.8s and 3.0s (average ~2.4s)
+  const viralCutDurations = [2.0, 1.8, 2.5, 2.2, 3.0, 2.4, 1.9, 2.8, 2.1, 2.7];
+  if (pacing === 'cinematic-slow') {
+    // Keep max 3.0s for viral rule but favor upper boundary (2.6s - 3.0s)
+    viralCutDurations.splice(0, viralCutDurations.length, 2.8, 3.0, 2.6, 2.9, 2.7);
+  } else if (pacing === 'viral-fast') {
+    // Favor 1.8s - 2.2s cuts
+    viralCutDurations.splice(0, viralCutDurations.length, 1.8, 2.0, 1.9, 2.2, 1.8, 2.4);
   }
 
   // Check if specific asset codes are referenced in the prompt (e.g. VID_01, VID_02)
@@ -126,33 +132,32 @@ export function runSmartDirector(
   let currentTime = 0;
   let clipIndex = 0;
 
-  const transitions: TransitionType[] = ['whip-pan', 'zoom-snap', 'glitch', 'cross-dissolve', 'slide-left'];
-  const motionEffects: MotionEffectType[] = [
-    'ken-burns-zoom-in',
-    'ken-burns-zoom-out',
-    'pan-left',
-    'pan-right',
-    'pulse',
-  ];
+  // The 4 Programmatic Motion Presets
+  const viralMotions: TransitionType[] = ['punch_in', 'whip_pan', 'ken_burns_zoom', 'white_flash'];
 
   while (currentTime < totalTarget) {
     const asset = prioritizedVisuals[clipIndex % prioritizedVisuals.length];
-    const isLast = totalTarget - currentTime <= baseClipDuration * 1.3;
-    const clipDuration = isLast ? Number((totalTarget - currentTime).toFixed(2)) : Number(baseClipDuration.toFixed(2));
+    const baseDuration = viralCutDurations[clipIndex % viralCutDurations.length];
+    
+    let clipDuration = baseDuration;
+    const remainingTime = totalTarget - currentTime;
+
+    if (remainingTime <= 3.2) {
+      clipDuration = Number(remainingTime.toFixed(2));
+    } else if (remainingTime - clipDuration < 1.8) {
+      // Avoid leaving a dangling cut under 1.8s
+      clipDuration = Number((remainingTime / 2).toFixed(2));
+    }
 
     const isVideo = asset.type === 'video';
     const maxSourceStart = isVideo && asset.duration > clipDuration ? Math.max(0, asset.duration - clipDuration) : 0;
-    const sourceStart = Number(((clipIndex * 2.5) % Math.max(1, maxSourceStart)).toFixed(2));
+    const sourceStart = Number(((clipIndex * 2.0) % Math.max(1, maxSourceStart)).toFixed(2));
 
-    const transition: TransitionType =
-      clipIndex === 0 ? 'none' : transitions[(clipIndex - 1) % transitions.length];
+    const transition = clipIndex === 0 ? 'none' : viralMotions[(clipIndex - 1) % viralMotions.length];
+    const motionEffect = viralMotions[clipIndex % viralMotions.length];
 
-    const motionEffect: MotionEffectType = isVideo
-      ? 'none'
-      : motionEffects[clipIndex % motionEffects.length];
-
-    // Slightly alternate filters for aesthetic rhythm if cyber or high-contrast
-    const clipFilter = clipIndex % 3 === 0 && chosenFilter !== 'none' ? chosenFilter : (chosenFilter === 'cyber' ? 'teal-orange' : chosenFilter);
+    // Slightly alternate filters for aesthetic rhythm
+    const clipFilter = clipIndex % 4 === 0 && chosenFilter !== 'none' ? chosenFilter : (chosenFilter === 'cyber' ? 'teal-orange' : chosenFilter);
 
     clips.push({
       id: `clip_${clipIndex + 1}`,
@@ -161,10 +166,11 @@ export function runSmartDirector(
       duration: clipDuration,
       sourceStart,
       transition,
-      transitionDuration: 0.4,
+      transitionDuration: 0.3,
       motionEffect,
       colorFilter: clipFilter,
       volume: 0,
+      fitMode: 'blur-pad',
     });
 
     currentTime += clipDuration;
@@ -172,7 +178,7 @@ export function runSmartDirector(
   }
 
   return {
-    title: `AutoCut 60s Edit: ${userPrompt.slice(0, 30)}...`,
+    title: `AutoCut 9:16 Viral Edit: ${userPrompt.slice(0, 25)}...`,
     totalDuration: 60,
     fps: 30,
     aspectRatio: '9:16',
@@ -200,8 +206,10 @@ export function runSmartDirector(
         }
       : undefined,
     subtitles: SAMPLE_SUBTITLES,
+    captionPosition: { x: 50, y: 70 },
+    activeSubtitleStyle: 'bouncy-karaoke',
     pacing,
-    directorNotes: `Constructed automated 60.0s timeline with ${clips.length} cuts referencing ${prioritizedVisuals.length} media assets. Assigned dynamic transitions (${transitions.join(', ')}), automated -16dB ducking envelope on ${bgmAsset?.id || 'background music'}, and Ken Burns motion choreography.`,
+    directorNotes: `Constructed viral 9:16 short-form timeline with ${clips.length} cuts (changing visuals every 1.8-3.0s). Assigned 4 viral motion presets (punch_in, whip_pan, ken_burns_zoom, white_flash), automatic -16dB ducking envelope on ${bgmAsset?.id || 'BG_MUSIC'}, and 9:16 blur-padding.`,
   };
 }
 

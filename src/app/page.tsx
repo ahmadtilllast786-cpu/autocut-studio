@@ -32,8 +32,8 @@ export default function AutoCutStudioPage() {
   const [timeline, setTimeline] = useState<Timeline>({
     ...DEFAULT_TIMELINE,
     aspectRatio: '9:16',
-    activeSubtitleStyle: 'capcut-karaoke',
-    captionPosition: { x: 50, y: 72 },
+    activeSubtitleStyle: 'bouncy-karaoke',
+    captionPosition: { x: 50, y: 70 },
   });
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
@@ -68,8 +68,8 @@ export default function AutoCutStudioPage() {
     setTimeline({
       ...DEFAULT_TIMELINE,
       aspectRatio: '9:16',
-      activeSubtitleStyle: 'capcut-karaoke',
-      captionPosition: { x: 50, y: 72 },
+      activeSubtitleStyle: 'bouncy-karaoke',
+      captionPosition: { x: 50, y: 70 },
     });
     setCurrentTime(0);
   };
@@ -86,8 +86,8 @@ export default function AutoCutStudioPage() {
     setTimeline({
       ...newTimeline,
       aspectRatio: timeline.aspectRatio || '9:16',
-      activeSubtitleStyle: timeline.activeSubtitleStyle || 'capcut-karaoke',
-      captionPosition: timeline.captionPosition || { x: 50, y: 72 },
+      activeSubtitleStyle: timeline.activeSubtitleStyle || 'bouncy-karaoke',
+      captionPosition: timeline.captionPosition || { x: 50, y: 70 },
     });
     setCurrentTime(0);
   };

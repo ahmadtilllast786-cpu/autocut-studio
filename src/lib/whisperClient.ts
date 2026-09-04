@@ -83,7 +83,8 @@ export function groupWordsIntoViralSegments(
           startTime: currentWords[0].start,
           endTime: currentWords[currentWords.length - 1].end,
           words: [...currentWords],
-          style: 'viral-highlight',
+          style: 'bouncy-karaoke',
+          position: { x: 50, y: 70 },
         });
         currentWords = [];
       }

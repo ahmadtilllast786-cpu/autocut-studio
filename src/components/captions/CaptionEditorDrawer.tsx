@@ -9,6 +9,7 @@ import {
   normalizeToStrictWords,
   CaptionPagingMode,
 } from '@/lib/captionEngine';
+import { stripSilenceFromSubtitles } from '@/lib/silenceStripper';
 import {
   Edit3,
   Scissors,
@@ -21,6 +22,7 @@ import {
   Layers,
   ChevronRight,
   Play,
+  Zap,
 } from 'lucide-react';
 
 interface CaptionEditorDrawerProps {
@@ -56,6 +58,17 @@ export function CaptionEditorDrawer({
   const [editStartMs, setEditStartMs] = useState(0);
   const [editEndMs, setEditEndMs] = useState(0);
   const [pagingMode, setPagingMode] = useState<CaptionPagingMode>('1-to-3-bursts');
+  const [silenceResult, setSilenceResult] = useState<{ timeSaved: number; count: number } | null>(null);
+
+  const handleStripSilence = () => {
+    const res = stripSilenceFromSubtitles(subtitles, 250);
+    onUpdateSubtitles(res.result);
+    setSilenceResult({
+      timeSaved: res.totalTimeSavedSec,
+      count: res.trimmedPausesCount,
+    });
+    setTimeout(() => setSilenceResult(null), 4500);
+  };
 
   const handleStartEditWord = (seg: SubtitleSegment, wIndex: number) => {
     const w = seg.words[wIndex];
@@ -166,34 +179,60 @@ export function CaptionEditorDrawer({
           </span>
         </div>
 
-        {/* Paging Mode Toggle */}
-        <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800">
+        <div className="flex items-center gap-2">
+          {/* VAD Silence Stripper Button */}
           <button
             type="button"
-            onClick={() => handleRepaginate('1-to-3-bursts')}
-            className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-              pagingMode === '1-to-3-bursts'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-            title="1-3 word punchy bursts (TikTok / CapCut style)"
+            onClick={handleStripSilence}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition cursor-pointer"
+            title="Automatically detect and trim dead pauses (>250ms) using Voice Activity Detection"
           >
-            ⚡ 1-3 Bursts
+            <Scissors className="w-3 h-3 text-amber-400" />
+            <span>Strip Pauses (&gt;250ms)</span>
           </button>
-          <button
-            type="button"
-            onClick={() => handleRepaginate('spoken-sentences')}
-            className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-              pagingMode === 'spoken-sentences'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-            title="Full sentence line blocks"
-          >
-            📜 Sentences
-          </button>
+
+          {/* Paging Mode Toggle */}
+          <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800">
+            <button
+              type="button"
+              onClick={() => handleRepaginate('1-to-3-bursts')}
+              className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
+                pagingMode === '1-to-3-bursts'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+              title="1-3 word punchy bursts (TikTok / CapCut style)"
+            >
+              ⚡ 1-3 Bursts
+            </button>
+            <button
+              type="button"
+              onClick={() => handleRepaginate('spoken-sentences')}
+              className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
+                pagingMode === 'spoken-sentences'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+              title="Full sentence line blocks"
+            >
+              📜 Sentences
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* VAD Silence Removal Result Feedback */}
+      {silenceResult && (
+        <div className="px-3.5 py-1.5 bg-amber-500/15 border-b border-amber-500/30 text-[11px] text-amber-200 flex items-center justify-between">
+          <span className="flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5 text-amber-400" />
+            VAD Trimmed {silenceResult.count} dead pauses! Saved {silenceResult.timeSaved}s of speech air.
+          </span>
+          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">
+            Pacing Snapped
+          </span>
+        </div>
+      )}
 
       {/* Active Word Quick Edit Sub-Panel (When a word is clicked) */}
       {editingWordRef && (

@@ -13,7 +13,7 @@ interface DynamicSubtitlesProps {
 export function DynamicSubtitles({
   currentTime,
   subtitles,
-  defaultStyle = 'capcut-karaoke',
+  defaultStyle = 'bouncy-karaoke',
   aspectRatio = '9:16',
 }: DynamicSubtitlesProps) {
   if (!subtitles || subtitles.length === 0) return null;
@@ -41,12 +41,12 @@ export function DynamicSubtitles({
 
   return (
     <div className="w-full flex justify-center items-center pointer-events-none select-none max-w-[92%] px-2">
-      {/* 1. CapCut Bouncy Karaoke Style */}
-      {(style === 'capcut-karaoke' || style === 'viral-highlight') && (
-        <div className="bg-black/65 backdrop-blur-sm px-4 py-2 rounded-2xl flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 shadow-2xl border border-white/10 transition-all">
+      {/* 1. Bouncy Karaoke (CapCut Inspired) */}
+      {(style === 'bouncy-karaoke' || (style as string) === 'capcut-karaoke' || (style as string) === 'viral-highlight') && (
+        <div className="bg-black/70 backdrop-blur-sm px-4 py-2 rounded-2xl flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 shadow-2xl border border-white/10 transition-all">
           {currentSegment.words.map((w, idx) => {
             const isActive = currentTime >= w.start && currentTime <= w.end;
-            const activeColor = w.color || '#facc15';
+            const activeColor = w.color || '#facc15'; // Vibrant glowing yellow
 
             return (
               <span
@@ -67,27 +67,7 @@ export function DynamicSubtitles({
         </div>
       )}
 
-      {/* 2. Premiere Minimal Clean Style */}
-      {(style === 'premiere-minimal' || style === 'minimal-white') && (
-        <div className="px-4 py-1.5 rounded-lg flex flex-wrap items-center justify-center gap-x-1.5 text-center drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
-          {currentSegment.words.map((w, idx) => {
-            const isActive = currentTime >= w.start && currentTime <= w.end;
-            return (
-              <span
-                key={`${w.word}_${idx}`}
-                style={{ color: w.color || '#ffffff' }}
-                className={`font-extrabold tracking-tight transition-opacity ${getResponsiveFontClass()} ${
-                  isActive ? 'opacity-100 font-black' : 'opacity-80'
-                }`}
-              >
-                {w.word}
-              </span>
-            );
-          })}
-        </div>
-      )}
-
-      {/* 3. Hormozi Pop Style */}
+      {/* 2. Hormozi Pop Style */}
       {style === 'hormozi-pop' && (
         <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center font-black uppercase tracking-tight">
           {currentSegment.words.map((w, idx) => {
@@ -100,7 +80,7 @@ export function DynamicSubtitles({
                 key={`${w.word}_${idx}`}
                 style={{ color: wordColor }}
                 className={`transition-transform duration-75 [text-shadow:_0_3px_0_#000,_0_0_10px_#000] ${getResponsiveFontClass()} ${
-                  isActive ? 'scale-120 -translate-y-0.5' : 'scale-100'
+                  isActive ? 'scale-120 -translate-y-0.5 drop-shadow-[0_0_10px_rgba(34,197,94,0.8)]' : 'scale-100'
                 }`}
               >
                 {w.word}
@@ -110,34 +90,25 @@ export function DynamicSubtitles({
         </div>
       )}
 
-      {/* 4. Cyber / Boxed Style */}
-      {(style === 'cyber-boxed' || style === 'neon-cyber') && (
-        <div className="bg-zinc-950/90 px-4 py-2 rounded-xl flex flex-wrap items-center justify-center gap-x-2 border border-cyan-500/50 shadow-[0_0_18px_rgba(6,182,212,0.4)]">
+      {/* 3. Minimal Boxed Style */}
+      {(style === 'minimal-boxed' || (style as string) === 'cyber-boxed' || (style as string) === 'premiere-minimal') && (
+        <div className="bg-zinc-950/85 backdrop-blur-md px-4 py-2 rounded-xl flex flex-wrap items-center justify-center gap-x-2 border border-zinc-700/80 shadow-2xl">
           {currentSegment.words.map((w, idx) => {
             const isActive = currentTime >= w.start && currentTime <= w.end;
-            const cyberColor = w.color || (isActive ? '#22d3ee' : '#a1a1aa');
+            const activeColor = w.color || '#38bdf8'; // Sky blue accent
 
             return (
               <span
                 key={`${w.word}_${idx}`}
-                style={{ color: cyberColor }}
-                className={`font-mono font-black uppercase transition-colors ${getResponsiveFontClass()} ${
-                  isActive ? 'drop-shadow-[0_0_10px_rgba(34,211,238,0.9)]' : ''
+                style={{ color: isActive ? activeColor : w.color || '#f4f4f5' }}
+                className={`font-bold tracking-normal transition-colors ${getResponsiveFontClass()} ${
+                  isActive ? 'drop-shadow-[0_0_8px_rgba(56,189,248,0.7)] font-black' : 'opacity-85'
                 }`}
               >
                 {w.word}
               </span>
             );
           })}
-        </div>
-      )}
-
-      {/* 5. Cinematic Subtitle Style */}
-      {(style === 'cinematic-subtitle' || style === 'classic-box') && (
-        <div className="flex flex-col items-center justify-center px-4 py-1.5 rounded bg-black/60 backdrop-blur-xs border-b-2 border-zinc-400/40">
-          <p className={`italic font-serif tracking-widest text-white/95 text-center ${getResponsiveFontClass()}`}>
-            {currentSegment.text}
-          </p>
         </div>
       )}
     </div>

@@ -140,8 +140,15 @@ export function TimelinePanel({
 
   const getTransitionBadge = (trans: string) => {
     switch (trans) {
+      case 'punch_in':
+        return '🥊 Punch In';
+      case 'whip_pan':
       case 'whip-pan':
-        return '⚡ Whip';
+        return '⚡ Whip Pan';
+      case 'ken_burns_zoom':
+        return '🔍 Ken Burns';
+      case 'white_flash':
+        return '✨ White Flash';
       case 'zoom-snap':
         return '🔍 Snap';
       case 'glitch':
