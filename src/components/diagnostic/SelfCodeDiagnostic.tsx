@@ -138,13 +138,13 @@ export function SelfCodeDiagnostic({
   return (
     <>
       {/* ========================================================================= */}
-      {/* 1. "SELF CODE" TRIGGER BUTTON (PINNED BOTTOM-RIGHT CORNER)                */}
+      {/* 1. "SELF CODE" TRIGGER BUTTON (PINNED BOTTOM-LEFT CORNER)                 */}
       {/* ========================================================================= */}
       <div
         style={{
           position: 'fixed',
           bottom: '24px',
-          right: '24px',
+          left: '24px',
           zIndex: 99999,
         }}
         className="select-none pointer-events-auto font-sans"
@@ -167,7 +167,7 @@ export function SelfCodeDiagnostic({
             Self code
           </span>
 
-          {/* Live Counter Badge at top-right edge */}
+          {/* Live Counter Badge at top-right edge of button */}
           <span
             className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full bg-zinc-950 text-white font-mono text-[10px] font-black border-2 border-[#ef4444] flex items-center justify-center shadow-lg"
             title={`${deadCount} mock/dead features detected`}
@@ -178,18 +178,18 @@ export function SelfCodeDiagnostic({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. DIAGNOSTIC REPORT PANEL (SLIDE-OVER DRAWER)                            */}
+      {/* 2. DIAGNOSTIC REPORT PANEL (SLIDE-OVER DRAWER FROM LEFT)                  */}
       {/* ========================================================================= */}
       {isOpen && (
-        <div className="fixed inset-0 z-[100000] flex justify-end font-sans animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[100000] flex justify-start font-sans animate-in fade-in duration-150">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-xs cursor-pointer"
             onClick={() => setIsOpen(false)}
           />
 
-          {/* Slide-out Drawer Panel */}
-          <div className="relative w-full max-w-xl h-full bg-[#121214] border-l border-[#27272a] shadow-2xl flex flex-col text-zinc-100 z-10 animate-in slide-in-from-right duration-200 select-none">
+          {/* Slide-out Drawer Panel from Left */}
+          <div className="relative w-full max-w-xl h-full bg-[#121214] border-r border-[#27272a] shadow-2xl flex flex-col text-zinc-100 z-10 animate-in slide-in-from-left duration-200 select-none">
             {/* 1. Header with Title, Metrics, Run Scan Button */}
             <div className="p-4 border-b border-[#27272a] bg-[#18181b] flex flex-col gap-3">
               <div className="flex items-center justify-between">

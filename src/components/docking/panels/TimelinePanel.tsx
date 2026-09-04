@@ -261,42 +261,67 @@ export function TimelinePanel({
     onUpdateClips?.([...resequenced, ...remainingOthers]);
   };
 
-  // Blade tool: split the clip under playhead into two clips
-  const handleBladeSplit = () => {
-    const clipIdx = timeline.clips.findIndex(
-      (c) => currentTime > c.startTime && currentTime < c.startTime + c.duration
-    );
-    if (clipIdx === -1) return;
+  // Split specific B-roll or audio clip at playhead position
+  const handleSplitClip = (targetClip: TimelineClip) => {
+    if (currentTime <= targetClip.startTime || currentTime >= targetClip.startTime + targetClip.duration) return;
 
-    const targetClip = timeline.clips[clipIdx];
     const firstDuration = Number((currentTime - targetClip.startTime).toFixed(2));
     const secondDuration = Number((targetClip.duration - firstDuration).toFixed(2));
 
-    if (firstDuration < 0.3 || secondDuration < 0.3) return;
+    if (firstDuration < 0.2 || secondDuration < 0.2) return;
 
     const clip1: TimelineClip = {
       ...targetClip,
-      id: `${targetClip.id}_a`,
+      id: `${targetClip.id}_cut1_${Date.now().toString(36).slice(-4)}`,
       duration: firstDuration,
     };
 
     const clip2: TimelineClip = {
       ...targetClip,
-      id: `${targetClip.id}_b`,
-      startTime: currentTime,
+      id: `${targetClip.id}_cut2_${Date.now().toString(36).slice(-4)}`,
+      startTime: Number(currentTime.toFixed(2)),
       duration: secondDuration,
       sourceStart: Number((targetClip.sourceStart + firstDuration).toFixed(2)),
       transition: 'none',
     };
 
-    const newClips = [
-      ...timeline.clips.slice(0, clipIdx),
-      clip1,
-      clip2,
-      ...timeline.clips.slice(clipIdx + 1),
-    ];
+    const remaining = timeline.clips.filter((c) => c.id !== targetClip.id);
+    onUpdateClips?.([...remaining, clip1, clip2]);
+  };
 
-    onUpdateClips?.(newClips);
+  // Blade tool: cuts B-roll item (above) or sound tracks (below) at playhead
+  const handleBladeSplit = () => {
+    // 1. Look for B-roll / overlay clip under playhead first
+    let target = timeline.clips.find(
+      (c) => c.trackId?.startsWith('overlay') && currentTime > c.startTime && currentTime < c.startTime + c.duration
+    );
+
+    // 2. Look for audio stem clip under playhead next
+    if (!target) {
+      target = timeline.clips.find(
+        (c) => c.trackId?.startsWith('audio') && currentTime > c.startTime && currentTime < c.startTime + c.duration
+      );
+    }
+
+    // 3. Fallback: split main clip contiguously if explicitly requested
+    if (!target) {
+      target = timeline.clips.find(
+        (c) => currentTime > c.startTime && currentTime < c.startTime + c.duration
+      );
+    }
+
+    if (target) {
+      handleSplitClip(target);
+    }
+  };
+
+  // Wheel zoom with Ctrl / Cmd / Alt keys
+  const handleCanvasWheel = (e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.3 : -0.3;
+      setZoomLevel((prev) => Math.max(1.0, Math.min(6.0, Number((prev + delta).toFixed(2)))));
+    }
   };
 
   // Scrub playhead on pointer down
@@ -352,9 +377,10 @@ export function TimelinePanel({
 
   const playheadPercent = Math.min(100, (currentTime / totalDuration) * 100);
 
-  // Time ruler ticks every 5 seconds
-  const rulerTicks = [];
-  for (let s = 0; s <= totalDuration; s += 5) {
+  // Dynamic adaptive time ruler ticks based on zoom level (1s, 2s, or 5s)
+  const tickStep = zoomLevel >= 4.0 ? 1 : zoomLevel >= 2.0 ? 2 : 5;
+  const rulerTicks: number[] = [];
+  for (let s = 0; s <= totalDuration; s += tickStep) {
     rulerTicks.push(s);
   }
 
@@ -473,7 +499,7 @@ export function TimelinePanel({
           </button>
         </div>
 
-        {/* Timecode & Zoom Slider */}
+        {/* Timecode & High-Precision Zoom Controls */}
         <div className="flex items-center gap-3">
           <div className="font-mono text-xs font-medium text-zinc-200">
             <span className="text-[#ededed] font-semibold">{formatTime(currentTime)}</span>
@@ -481,19 +507,46 @@ export function TimelinePanel({
             <span className="text-zinc-500">{formatTime(totalDuration)}</span>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <ZoomOut className="w-3 h-3 text-zinc-500" />
+          <div className="flex items-center gap-1.5 bg-[#18181b] px-2 py-1 rounded-lg border border-[#27272a]">
+            <button
+              type="button"
+              onClick={() => setZoomLevel((prev) => Math.max(1.0, Number((prev - 0.5).toFixed(1))))}
+              className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+              title="Zoom Out (-)"
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </button>
             <input
               type="range"
-              min={0.8}
-              max={2.0}
-              step={0.1}
+              min={1.0}
+              max={6.0}
+              step={0.25}
               value={zoomLevel}
               onChange={(e) => setZoomLevel(Number(e.target.value))}
-              className="w-16 accent-zinc-300 bg-[#27272a] h-1 rounded cursor-pointer"
-              title="Timeline Track Zoom"
+              className="w-20 accent-white bg-[#27272a] h-1.5 rounded cursor-pointer"
+              title="Smooth Zoom (100% to 600%)"
             />
-            <ZoomIn className="w-3 h-3 text-zinc-500" />
+            <button
+              type="button"
+              onClick={() => setZoomLevel((prev) => Math.min(6.0, Number((prev + 0.5).toFixed(1))))}
+              className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+              title="Zoom In (+)"
+            >
+              <ZoomIn className="w-3.5 h-3.5" />
+            </button>
+            <span className="font-mono text-[10px] text-zinc-400 min-w-[34px] text-right">
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            {zoomLevel > 1.05 && (
+              <button
+                type="button"
+                onClick={() => setZoomLevel(1.0)}
+                className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-mono bg-zinc-800 text-zinc-200 hover:text-white border border-[#3f3f46] transition cursor-pointer"
+                title="Reset Zoom (Fit to Screen)"
+              >
+                Fit
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -579,26 +632,38 @@ export function TimelinePanel({
           </div>
         </div>
 
-        {/* Track Canvas Column (Scrollable Right) */}
-        <div className="flex-1 overflow-x-auto overflow-y-auto p-1.5 bg-[#18181b] select-none">
+        {/* Track Canvas Column (Scrollable Right with Smooth Wheel Zoom) */}
+        <div
+          onWheel={handleCanvasWheel}
+          className="flex-1 overflow-x-auto overflow-y-auto p-1.5 bg-[#18181b] select-none"
+        >
           <div
             ref={containerRef}
             onPointerDown={handlePointerDown}
             style={{ width: `${Math.max(100, zoomLevel * 100)}%` }}
-            className="relative bg-[#121214] rounded-xl p-2 cursor-pointer border border-[#27272a] hover:border-[#3f3f46] transition flex flex-col gap-1.5 shadow-inner"
+            className="relative bg-[#121214] rounded-xl p-2 cursor-pointer border border-[#27272a] hover:border-[#3f3f46] transition-all flex flex-col gap-1.5 shadow-inner"
           >
-            {/* Time Ruler (0s to 60s) */}
+            {/* Time Ruler (0s to totalDuration) with Dynamic Adaptive Ticks */}
             <div className="relative h-6 border-b border-[#27272a] mb-1 flex items-center">
               {rulerTicks.map((sec) => {
                 const leftPct = (sec / totalDuration) * 100;
+                const isMajor = sec % 5 === 0 || tickStep === 1;
                 return (
                   <div
                     key={sec}
                     className="absolute flex flex-col items-center -translate-x-1/2 pointer-events-none"
                     style={{ left: `${leftPct}%` }}
                   >
-                    <span className="text-[9px] font-mono text-zinc-500">{sec}s</span>
-                    <div className="w-px h-1.5 bg-[#27272a] mt-0.5" />
+                    {isMajor && (
+                      <span className="text-[9px] font-mono text-zinc-400 select-none">
+                        {sec}s
+                      </span>
+                    )}
+                    <div
+                      className={`w-px mt-0.5 ${
+                        sec % 5 === 0 ? 'h-2 bg-zinc-400' : 'h-1 bg-zinc-600'
+                      }`}
+                    />
                   </div>
                 );
               })}
@@ -674,18 +739,19 @@ export function TimelinePanel({
                   )}
 
                   {/* ======================================================= */}
-                  {/* TRACK TYPE: MAIN STRAIGHT-LINE VIDEO & PICS (SHUFFLE)   */}
+                  {/* TRACK TYPE: MAIN STRAIGHT-LINE VIDEO & PICS (ONE REEL)  */}
+                  {/* Seamless contiguous filmstrip: one image after another   */}
                   {/* ======================================================= */}
                   {isMain && (
-                    <div className="w-full h-full flex relative overflow-hidden">
+                    <div className="w-full h-full flex relative overflow-hidden bg-black/50">
                       {mainClips.length === 0 ? (
                         <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-500 font-mono">
-                          Drag videos & photos here to build straight sequence
+                          Drag videos & photos here to build continuous straight sequence
                         </div>
                       ) : (
-                        mainClips.map((clip) => {
+                        mainClips.map((clip, idx) => {
                           const asset = assetMap.get(clip.assetId);
-                          const isVideo = clip.assetId.startsWith('VID');
+                          const isVideo = clip.assetId.startsWith('VID') || asset?.type === 'video';
                           const widthPct = (clip.duration / totalDuration) * 100;
                           const isActive =
                             currentTime >= clip.startTime && currentTime < clip.startTime + clip.duration;
@@ -699,60 +765,62 @@ export function TimelinePanel({
                               onDragOver={(e) => e.preventDefault()}
                               onDrop={(e) => handleClipDropOnClip(e, clip.id)}
                               style={{ width: `${widthPct}%` }}
-                              className={`h-full border-r border-[#121214] p-1 flex flex-col justify-between relative transition group cursor-grab active:cursor-grabbing select-none ${
+                              className={`h-full border-r border-black/80 relative transition group cursor-grab active:cursor-grabbing select-none overflow-hidden flex flex-col justify-between ${
                                 isActive
-                                  ? 'bg-zinc-800 border-t-2 border-t-zinc-200'
-                                  : isVideo
-                                  ? 'bg-zinc-900/95 hover:bg-zinc-800/80'
-                                  : 'bg-zinc-900/70 hover:bg-zinc-800/60'
+                                  ? 'ring-2 ring-white ring-inset z-10'
+                                  : 'hover:brightness-110'
                               }`}
-                              title={`${clip.assetId} (${clip.startTime}s - ${(clip.startTime + clip.duration).toFixed(1)}s) • Drag to shuffle order`}
+                              title={`${clip.assetId} (${clip.startTime}s - ${(clip.startTime + clip.duration).toFixed(1)}s) • One image after another • Drag to reorder`}
                             >
-                              {/* Top Bar: Asset ID + Shuffle Handle + Delete */}
-                              <div className="flex items-center justify-between text-[9px] font-mono leading-none truncate">
-                                <span className="font-bold text-[#ededed] flex items-center gap-1">
-                                  <GripHorizontal className="w-2.5 h-2.5 text-zinc-500 group-hover:text-zinc-300" />
-                                  [{clip.assetId}]
+                              {/* Background Thumbnail Image Filling Card ("One Image After Another") */}
+                              <div className="absolute inset-0 z-0 overflow-hidden bg-zinc-900">
+                                {asset?.thumbnailUrl || asset?.url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={asset.thumbnailUrl || asset.url}
+                                    alt={asset.name}
+                                    className="w-full h-full object-cover pointer-events-none opacity-85 group-hover:opacity-100 transition duration-200"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-600">
+                                    <Film className="w-4 h-4 opacity-40" />
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-transparent to-black/85 pointer-events-none" />
+                              </div>
+
+                              {/* Top Bar: Sequence Number + Asset Tag + Drag Grip */}
+                              <div className="relative z-10 p-1 flex items-center justify-between text-[9px] font-mono leading-none truncate">
+                                <span className="font-bold text-white flex items-center gap-1 drop-shadow-sm">
+                                  <GripHorizontal className="w-2.5 h-2.5 text-zinc-300 group-hover:text-white" />
+                                  <span className="text-zinc-300 font-normal">#{idx + 1}</span>
+                                  <span>{clip.assetId}</span>
                                 </span>
 
                                 <div className="flex items-center gap-1">
                                   {transBadge && (
-                                    <span className="text-[7px] px-1 py-0.2 rounded bg-black/60 text-zinc-400">
+                                    <span className="text-[7px] px-1 py-0.2 rounded bg-black/70 text-zinc-300 font-sans border border-white/10">
                                       {transBadge}
                                     </span>
                                   )}
                                   <button
                                     type="button"
                                     onClick={(e) => handleDeleteClip(e, clip.id)}
-                                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-red-400 transition cursor-pointer"
+                                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded bg-black/60 hover:text-red-400 transition cursor-pointer"
+                                    title="Remove clip from sequence"
                                   >
                                     <X className="w-2.5 h-2.5" />
                                   </button>
                                 </div>
                               </div>
 
-                              {/* Center Thumbnail / Icon Preview */}
-                              <div className="flex items-center gap-1 overflow-hidden h-6">
-                                {asset?.thumbnailUrl ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={asset.thumbnailUrl}
-                                    alt=""
-                                    className="w-8 h-full object-cover rounded pointer-events-none opacity-80"
-                                  />
-                                ) : (
-                                  <Film className="w-3.5 h-3.5 text-zinc-500" />
-                                )}
-                                <span className="text-[8px] text-zinc-400 truncate">
-                                  {asset?.name || clip.assetId}
+                              {/* Bottom Bar: Duration & Media Type Badge */}
+                              <div className="relative z-10 p-1 flex items-center justify-between text-[8px] font-mono leading-none text-zinc-200 drop-shadow-sm">
+                                <span className="bg-black/60 px-1 py-0.5 rounded text-white font-semibold">
+                                  {clip.duration.toFixed(1)}s
                                 </span>
-                              </div>
-
-                              {/* Bottom Duration */}
-                              <div className="text-[8px] text-zinc-500 font-mono leading-none flex items-center justify-between">
-                                <span>{clip.duration.toFixed(1)}s</span>
-                                <span className="text-[7px] text-zinc-600 uppercase">
-                                  {clip.motionEffect !== 'none' ? clip.motionEffect : 'cut'}
+                                <span className="text-[7px] text-zinc-300 uppercase tracking-wider bg-black/50 px-1 py-0.2 rounded">
+                                  {isVideo ? 'VIDEO' : 'PHOTO'}
                                 </span>
                               </div>
                             </div>
@@ -764,12 +832,13 @@ export function TimelinePanel({
 
                   {/* ======================================================= */}
                   {/* TRACK TYPE: OVERLAY / B-ITEMS LINES (ABOVE MAIN)       */}
+                  {/* Allows cutting B-roll items at playhead                  */}
                   {/* ======================================================= */}
                   {track.type === 'overlay-broll' && (
                     <div className="w-full h-full relative flex items-center">
                       {trackClips.length === 0 ? (
                         <div className="text-[9px] text-zinc-600 font-mono px-2">
-                          Drop B-Roll / Picture overlay here (&quot;put where you want&quot;)
+                          Drop B-Roll / Picture overlay here (&quot;put where you want • cut above&quot;)
                         </div>
                       ) : (
                         trackClips.map((clip) => {
@@ -777,27 +846,48 @@ export function TimelinePanel({
                           const leftPct = (clip.startTime / totalDuration) * 100;
                           const widthPct = (clip.duration / totalDuration) * 100;
                           const isNow = currentTime >= clip.startTime && currentTime < clip.startTime + clip.duration;
+                          const isUnderPlayhead = currentTime > clip.startTime + 0.2 && currentTime < clip.startTime + clip.duration - 0.2;
 
                           return (
                             <div
                               key={clip.id}
                               style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
-                              className={`absolute h-5 rounded px-1.5 flex items-center justify-between text-[8px] font-mono border transition group ${
+                              className={`absolute h-5.5 rounded-md px-1.5 flex items-center justify-between text-[8px] font-mono border transition group ${
                                 isNow
-                                  ? 'bg-zinc-700 text-white border-zinc-400'
-                                  : 'bg-zinc-800/90 text-zinc-300 border-zinc-700'
+                                  ? 'bg-zinc-700 text-white border-white shadow-md'
+                                  : 'bg-zinc-800/95 text-zinc-200 border-zinc-600'
                               }`}
-                              title={`Overlay: ${clip.assetId} at ${clip.startTime}s`}
+                              title={`B-Roll Overlay: ${clip.assetId} (${clip.startTime}s - ${(clip.startTime + clip.duration).toFixed(1)}s)`}
                             >
-                              <span className="font-bold truncate">[{clip.assetId}]</span>
-                              <span className="text-[7px] text-zinc-400">{clip.duration}s</span>
-                              <button
-                                type="button"
-                                onClick={(e) => handleDeleteClip(e, clip.id)}
-                                className="opacity-0 group-hover:opacity-100 ml-1 text-zinc-400 hover:text-red-400 cursor-pointer"
-                              >
-                                <X className="w-2.5 h-2.5" />
-                              </button>
+                              <div className="flex items-center gap-1 truncate">
+                                <span className="font-bold truncate">[{clip.assetId}]</span>
+                                <span className="text-[7px] text-zinc-400">{clip.duration.toFixed(1)}s</span>
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                {isUnderPlayhead && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSplitClip(clip);
+                                    }}
+                                    className="px-1 py-0.2 rounded bg-zinc-900 text-zinc-200 hover:text-white hover:bg-black border border-zinc-500 text-[8px] flex items-center gap-0.5 cursor-pointer"
+                                    title="Cut B-Roll at playhead"
+                                  >
+                                    <Scissors className="w-2.5 h-2.5" />
+                                    <span>Cut</span>
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleDeleteClip(e, clip.id)}
+                                  className="opacity-0 group-hover:opacity-100 ml-1 text-zinc-400 hover:text-red-400 cursor-pointer"
+                                  title="Delete B-roll item"
+                                >
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              </div>
                             </div>
                           );
                         })
@@ -868,34 +958,56 @@ export function TimelinePanel({
 
                   {/* ======================================================= */}
                   {/* TRACK TYPE: CUSTOM AUDIO STEMS (BELOW MAIN)             */}
+                  {/* Allows cutting sound clips at playhead                  */}
                   {/* ======================================================= */}
                   {track.type === 'audio-sfx' && (
                     <div className="w-full h-full relative flex items-center px-1">
                       {trackClips.length === 0 ? (
                         <div className="text-[9px] text-zinc-600 font-mono px-2">
-                          Drop audio / SFX here (&quot;put where you want&quot;)
+                          Drop audio / SFX here (&quot;put where you want • cut for sound&quot;)
                         </div>
                       ) : (
                         trackClips.map((clip) => {
                           const leftPct = (clip.startTime / totalDuration) * 100;
                           const widthPct = (clip.duration / totalDuration) * 100;
+                          const isUnderPlayhead = currentTime > clip.startTime + 0.2 && currentTime < clip.startTime + clip.duration - 0.2;
 
                           return (
                             <div
                               key={clip.id}
                               style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
-                              className="absolute h-5 rounded px-1.5 flex items-center justify-between text-[8px] font-mono bg-zinc-800 border border-zinc-700 text-zinc-300 group"
-                              title={`Audio: ${clip.assetId} at ${clip.startTime}s`}
+                              className="absolute h-5.5 rounded-md px-1.5 flex items-center justify-between text-[8px] font-mono bg-zinc-800 border border-zinc-600 text-zinc-200 group"
+                              title={`Audio: ${clip.assetId} (${clip.startTime}s - ${(clip.startTime + clip.duration).toFixed(1)}s)`}
                             >
-                              <span className="font-bold truncate">[{clip.assetId}]</span>
-                              <span className="text-[7px] text-zinc-500">{clip.duration}s</span>
-                              <button
-                                type="button"
-                                onClick={(e) => handleDeleteClip(e, clip.id)}
-                                className="opacity-0 group-hover:opacity-100 ml-1 text-zinc-400 hover:text-red-400 cursor-pointer"
-                              >
-                                <X className="w-2.5 h-2.5" />
-                              </button>
+                              <div className="flex items-center gap-1 truncate">
+                                <span className="font-bold truncate">[{clip.assetId}]</span>
+                                <span className="text-[7px] text-zinc-400">{clip.duration.toFixed(1)}s</span>
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                {isUnderPlayhead && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSplitClip(clip);
+                                    }}
+                                    className="px-1 py-0.2 rounded bg-zinc-900 text-zinc-200 hover:text-white hover:bg-black border border-zinc-500 text-[8px] flex items-center gap-0.5 cursor-pointer"
+                                    title="Cut Sound at playhead"
+                                  >
+                                    <Scissors className="w-2.5 h-2.5" />
+                                    <span>Cut</span>
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleDeleteClip(e, clip.id)}
+                                  className="opacity-0 group-hover:opacity-100 ml-1 text-zinc-400 hover:text-red-400 cursor-pointer"
+                                  title="Delete audio stem"
+                                >
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              </div>
                             </div>
                           );
                         })

@@ -157,9 +157,9 @@ export default function AutoCutStudioPage() {
         activeStyle={timeline.activeSubtitleStyle || 'bouncy-karaoke'}
       />
 
-      {/* 2. Middle Row: 3 Non-Overlapping Panels (1fr) */}
-      <main className="grid grid-cols-[320px_1fr_380px] overflow-hidden bg-[#0d0d0e]">
-        {/* Left Quadrant: Media & Feature Drawer */}
+      {/* 2. Middle Row: 3 Non-Overlapping Panels (Main Screen shifted to left) */}
+      <main className="grid grid-cols-[360px_1fr_340px] overflow-hidden bg-[#0d0d0e]">
+        {/* Left Quadrant: Media & Feature Drawer with Big Upload Option */}
         <div className="overflow-hidden border-r border-[#27272a] bg-[#121214] flex flex-col">
           <MediaDrawerPanel
             assets={assets}
@@ -169,8 +169,8 @@ export default function AutoCutStudioPage() {
           />
         </div>
 
-        {/* Center Quadrant: Player Viewport (Aspect-Ratio Locked Canvas) */}
-        <div className="overflow-hidden bg-[#0d0d0e] flex flex-col items-center justify-center p-2 relative">
+        {/* Center Quadrant: Player Viewport (Main Screen shifted toward left side) */}
+        <div className="overflow-hidden bg-[#0d0d0e] flex flex-col items-center justify-center lg:items-start lg:pl-8 p-2 relative">
           <PlayerViewportPanel
             timeline={timeline}
             assets={assets}
