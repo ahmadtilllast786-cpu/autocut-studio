@@ -9,6 +9,8 @@ interface NavbarProps {
   onOpenExport: () => void;
   hasClips: boolean;
   activeProvider: string;
+  aspectRatio?: string;
+  activeStyle?: string;
 }
 
 export function Navbar({
@@ -17,6 +19,8 @@ export function Navbar({
   onOpenExport,
   hasClips,
   activeProvider,
+  aspectRatio = '9:16',
+  activeStyle = 'capcut-karaoke',
 }: NavbarProps) {
   return (
     <header className="h-16 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur px-4 lg:px-6 flex items-center justify-between z-30 sticky top-0">
@@ -33,7 +37,7 @@ export function Navbar({
               AutoCut <span className="bg-gradient-to-r from-indigo-400 to-fuchsia-400 bg-clip-text text-transparent">Studio</span>
             </h1>
             <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              9:16 Vertical AI
+              {aspectRatio} AI • {activeStyle.replace('-', ' ')}
             </span>
           </div>
           <p className="text-xs text-zinc-400 hidden sm:block">

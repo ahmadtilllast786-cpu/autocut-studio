@@ -23,9 +23,18 @@ export interface ExportOptions {
 export async function renderAndExportVideo(options: ExportOptions): Promise<Blob> {
   const { timeline, assets, resolution = '1080x1920', fps = 30, onProgress } = options;
 
-  const [width, height] = resolution === '1080x1920' ? [1080, 1920] : [720, 1280];
   const totalDuration = timeline.totalDuration || 60;
   const speechIntervals = extractSpeechIntervals(timeline.subtitles);
+
+  let width = 1080;
+  let height = 1920;
+  if (timeline.aspectRatio === '16:9') {
+    width = 1920;
+    height = 1080;
+  } else if (timeline.aspectRatio === '1:1') {
+    width = 1080;
+    height = 1080;
+  }
 
   // 1. Create off-screen canvas
   const canvas = document.createElement('canvas');
@@ -467,12 +476,15 @@ function drawSubtitlesOnCanvas(
 
   ctx.save();
 
-  // Position captions in safe zone (around 72% down the vertical frame)
-  const posY = height * 0.72;
+  // Position captions based on relative percentages
+  const relX = (currentSegment.position?.x ?? 50) / 100;
+  const relY = (currentSegment.position?.y ?? 72) / 100;
+  const posY = height * relY;
+
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  const fontSize = Math.round(width * 0.058); // ~62px on 1080w
+  const fontSize = Math.round(width * 0.052);
   ctx.font = `900 ${fontSize}px "Impact", "Arial Black", sans-serif`;
 
   // Calculate word widths for centered inline layout
@@ -487,19 +499,19 @@ function drawSubtitlesOnCanvas(
   const totalTextWidth =
     wordMetrics.reduce((sum, w) => sum + w.width, 0) + (words.length - 1) * spaceWidth;
 
-  let startX = (width - totalTextWidth) / 2;
+  let startX = (width * relX) - (totalTextWidth / 2);
 
   // Background subtle pill backdrop
-  const pillPaddingX = 30;
-  const pillPaddingY = 18;
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+  const pillPaddingX = 26;
+  const pillPaddingY = 16;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
   ctx.beginPath();
   ctx.roundRect(
     startX - pillPaddingX,
     posY - fontSize / 2 - pillPaddingY,
     totalTextWidth + pillPaddingX * 2,
     fontSize + pillPaddingY * 2,
-    24
+    20
   );
   ctx.fill();
 
@@ -511,24 +523,21 @@ function drawSubtitlesOnCanvas(
     if (item.isActive) {
       // Pop / scale active word
       ctx.translate(wordX, posY);
-      ctx.scale(1.18, 1.18);
+      ctx.scale(1.15, 1.15);
       ctx.translate(-wordX, -posY);
 
-      // Heavy black stroke
-      ctx.lineWidth = 12;
+      ctx.lineWidth = 10;
       ctx.strokeStyle = '#000000';
       ctx.strokeText(item.word.toUpperCase(), wordX, posY);
 
-      // Neon yellow / green viral fill
-      ctx.fillStyle = '#facc15'; // Vibrant Neon Yellow
+      ctx.fillStyle = item.color || '#facc15';
       ctx.fillText(item.word.toUpperCase(), wordX, posY);
     } else {
-      // Non-active word: Crisp White with black stroke
       ctx.lineWidth = 8;
       ctx.strokeStyle = '#000000';
       ctx.strokeText(item.word.toUpperCase(), wordX, posY);
 
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = item.color || '#ffffff';
       ctx.fillText(item.word.toUpperCase(), wordX, posY);
     }
     ctx.restore();

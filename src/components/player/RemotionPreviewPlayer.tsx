@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Timeline, MediaAsset, SubtitleStyleType } from '@/types/timeline';
+import { Timeline, MediaAsset, SubtitleStyleType, AspectRatioType, CaptionPosition } from '@/types/timeline';
 import { DynamicSubtitles } from './DynamicSubtitles';
+import { DraggableCaptionOverlay } from '@/components/captions/DraggableCaptionOverlay';
 import { extractSpeechIntervals, getDuckGainAtTime, SyntheticAudioProvider } from '@/lib/audioEngine';
 import {
   Play,
@@ -15,7 +16,10 @@ import {
   Eye,
   EyeOff,
   Sparkles,
-  Maximize2,
+  Smartphone,
+  Tv,
+  Square,
+  Move,
 } from 'lucide-react';
 
 interface RemotionPreviewPlayerProps {
@@ -23,6 +27,9 @@ interface RemotionPreviewPlayerProps {
   assets: MediaAsset[];
   currentTime: number;
   onTimeUpdate: React.Dispatch<React.SetStateAction<number>>;
+  onAspectRatioChange?: (ratio: AspectRatioType) => void;
+  onCaptionPositionChange?: (pos: CaptionPosition) => void;
+  onSubtitleStyleChange?: (style: SubtitleStyleType) => void;
 }
 
 export function RemotionPreviewPlayer({
@@ -30,15 +37,22 @@ export function RemotionPreviewPlayer({
   assets,
   currentTime,
   onTimeUpdate,
+  onAspectRatioChange,
+  onCaptionPositionChange,
+  onSubtitleStyleChange,
 }: RemotionPreviewPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<1 | 1.5 | 2>(1);
   const [showSafeZone, setShowSafeZone] = useState(false);
-  const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyleType>('viral-highlight');
   const [isCurrentlyDucking, setIsCurrentlyDucking] = useState(false);
   const [videoErrorMap, setVideoErrorMap] = useState<Record<string, boolean>>({});
+  const [viewportDims, setViewportDims] = useState<{ width: number; height: number }>({
+    width: 340,
+    height: 604,
+  });
 
+  const viewportRef = useRef<HTMLDivElement>(null);
   const videoElementRef = useRef<HTMLVideoElement>(null);
   const voAudioRef = useRef<HTMLAudioElement>(null);
   const bgmAudioRef = useRef<HTMLAudioElement>(null);
@@ -47,6 +61,26 @@ export function RemotionPreviewPlayer({
 
   const totalDuration = timeline.totalDuration || 60;
   const speechIntervals = extractSpeechIntervals(timeline.subtitles);
+  const activeStyle = timeline.activeSubtitleStyle || 'capcut-karaoke';
+  const captionPos = timeline.captionPosition || { x: 50, y: 72 };
+  const currentRatio = timeline.aspectRatio || '9:16';
+
+  // Measure viewport dimensions dynamically for drag coordinates
+  useEffect(() => {
+    if (!viewportRef.current) return;
+    const updateSize = () => {
+      if (viewportRef.current) {
+        setViewportDims({
+          width: viewportRef.current.clientWidth,
+          height: viewportRef.current.clientHeight,
+        });
+      }
+    };
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(viewportRef.current);
+    return () => observer.disconnect();
+  }, [currentRatio]);
 
   // Find active clip at currentTime
   const activeClip = timeline.clips.find(
@@ -59,7 +93,6 @@ export function RemotionPreviewPlayer({
   const voAsset = assets.find((a) => a.id === 'VO_TRACK' || a.type === 'voiceover');
   const bgmAsset = assets.find((a) => a.id === 'BG_MUSIC' || a.type === 'music');
 
-  // Time formatting
   const formatTimecode = (sec: number) => {
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
@@ -90,7 +123,6 @@ export function RemotionPreviewPlayer({
       lastTimestampRef.current = performance.now();
       requestAnimRef.current = requestAnimationFrame(stepAnimation);
 
-      // Play audio elements
       if (voAudioRef.current && !isMuted) {
         voAudioRef.current.currentTime = currentTime;
         voAudioRef.current.play().catch(() => {});
@@ -142,7 +174,6 @@ export function RemotionPreviewPlayer({
   }, [currentTime, isVideo, activeClip, isPlaying]);
 
   const togglePlay = () => {
-    // Resume audio context on user interaction if needed
     SyntheticAudioProvider.getAudioContext();
     setIsPlaying(!isPlaying);
   };
@@ -152,7 +183,6 @@ export function RemotionPreviewPlayer({
     onTimeUpdate(newTime);
   };
 
-  // Compute CSS styles for Motion Effects and Transitions
   const clipProgress = activeClip
     ? Math.max(0, Math.min(1, (currentTime - activeClip.startTime) / activeClip.duration))
     : 0;
@@ -203,38 +233,78 @@ export function RemotionPreviewPlayer({
 
   const isTransitioning = transitionProgress < 1 && activeClip?.transition !== 'none';
 
+  // Responsive Viewport sizing based on Aspect Ratio
+  const getViewportAspectClass = () => {
+    switch (currentRatio) {
+      case '16:9':
+        return 'aspect-[16/9] max-w-[580px] max-h-[360px]';
+      case '1:1':
+        return 'aspect-square max-w-[420px] max-h-[420px]';
+      case '9:16':
+      default:
+        return 'aspect-[9/16] max-w-[340px] max-h-[580px]';
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-between h-full bg-zinc-950/60 p-3 sm:p-4 gap-3">
       {/* Top Bar Controls */}
-      <div className="w-full flex items-center justify-between px-2 text-xs">
-        {/* Aspect Ratio & Ducking Indicator Badge */}
-        <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 font-mono text-[10px] font-bold border border-zinc-700">
-            9:16 Vertical
-          </span>
+      <div className="w-full flex items-center justify-between px-2 text-xs gap-2 flex-wrap">
+        {/* Multi-Aspect Ratio Switcher */}
+        <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-lg border border-zinc-800">
+          <button
+            type="button"
+            onClick={() => onAspectRatioChange?.('9:16')}
+            className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] font-bold transition cursor-pointer ${
+              currentRatio === '9:16'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+            title="9:16 Vertical (TikTok, Reels, Shorts)"
+          >
+            <Smartphone className="w-3 h-3" />
+            <span>9:16</span>
+          </button>
 
-          {isCurrentlyDucking && (
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-mono border border-purple-500/40 animate-pulse">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-              Ducking -16dB
-            </span>
-          )}
+          <button
+            type="button"
+            onClick={() => onAspectRatioChange?.('16:9')}
+            className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] font-bold transition cursor-pointer ${
+              currentRatio === '16:9'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+            title="16:9 Landscape (YouTube, Desktop)"
+          >
+            <Tv className="w-3 h-3" />
+            <span>16:9</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onAspectRatioChange?.('1:1')}
+            className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] font-bold transition cursor-pointer ${
+              currentRatio === '1:1'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+            title="1:1 Square (Instagram Post, Square Feed)"
+          >
+            <Square className="w-3 h-3" />
+            <span>1:1</span>
+          </button>
         </div>
+
+        {/* Ducking Indicator Badge */}
+        {isCurrentlyDucking && (
+          <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-mono border border-purple-500/40 animate-pulse">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+            Ducking -16dB
+          </span>
+        )}
 
         {/* Subtitle Style & Safe Zone Toggles */}
         <div className="flex items-center gap-2">
-          <select
-            value={subtitleStyle}
-            onChange={(e) => setSubtitleStyle(e.target.value as SubtitleStyleType)}
-            className="bg-zinc-900 border border-zinc-800 rounded-md px-2 py-1 text-[11px] text-zinc-300 focus:outline-none"
-            title="Subtitle Visual Style"
-          >
-            <option value="viral-highlight">⚡ Viral Pop (Hormozi)</option>
-            <option value="neon-cyber">🌐 Neon Cyber</option>
-            <option value="minimal-white">✨ Minimal White</option>
-            <option value="classic-box">⬛ Classic Box</option>
-          </select>
-
           <button
             type="button"
             onClick={() => setShowSafeZone(!showSafeZone)}
@@ -251,8 +321,11 @@ export function RemotionPreviewPlayer({
         </div>
       </div>
 
-      {/* 9:16 VERTICAL PLAYER VIEWPORT */}
-      <div className="relative w-full flex-1 max-w-[340px] max-h-[580px] aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-2xl border-2 border-zinc-800 flex items-center justify-center select-none group">
+      {/* ADAPTIVE MULTI-ASPECT RATIO PLAYER VIEWPORT */}
+      <div
+        ref={viewportRef}
+        className={`relative w-full flex-1 ${getViewportAspectClass()} bg-black rounded-2xl overflow-hidden shadow-2xl border-2 border-zinc-800 flex items-center justify-center select-none group/player`}
+      >
         {/* Layer 1: Visual Media Content */}
         <div
           className={`w-full h-full relative overflow-hidden transition-all duration-300 ${getColorFilterClass()}`}
@@ -303,25 +376,31 @@ export function RemotionPreviewPlayer({
           )}
         </div>
 
-        {/* Layer 2: Dynamic Auto-Subtitles (Word-by-word synced) */}
-        <DynamicSubtitles
-          currentTime={currentTime}
-          subtitles={timeline.subtitles}
-          defaultStyle={subtitleStyle}
-        />
+        {/* Layer 2: Interactive Draggable Captions Overlay with Snapping */}
+        <DraggableCaptionOverlay
+          position={captionPos}
+          onPositionChange={(pos) => onCaptionPositionChange?.(pos)}
+          containerWidth={viewportDims.width}
+          containerHeight={viewportDims.height}
+          enabled={true}
+        >
+          <DynamicSubtitles
+            currentTime={currentTime}
+            subtitles={timeline.subtitles}
+            defaultStyle={activeStyle}
+            aspectRatio={currentRatio}
+          />
+        </DraggableCaptionOverlay>
 
         {/* Layer 3: TikTok / Reels Safe Zone Overlay */}
         {showSafeZone && (
           <div className="absolute inset-0 pointer-events-none z-20 border-x-4 border-dashed border-red-500/30">
-            {/* Top header safe zone */}
             <div className="absolute top-0 inset-x-0 h-14 bg-red-500/10 border-b border-dashed border-red-500/40 flex items-center justify-center text-[10px] font-mono text-red-400">
               Top Safe Zone (Nav / Live)
             </div>
-            {/* Right sidebar action buttons safe zone */}
             <div className="absolute right-0 top-16 bottom-24 w-14 bg-red-500/10 border-l border-dashed border-red-500/40 flex flex-col items-center justify-center text-[9px] font-mono text-red-400 p-1 text-center">
-              Like / Share UI Safe Area
+              Actions Area
             </div>
-            {/* Bottom safe zone for captions / song info */}
             <div className="absolute bottom-0 inset-x-0 h-20 bg-red-500/10 border-t border-dashed border-red-500/40 flex items-center justify-center text-[10px] font-mono text-red-400">
               Bottom Safe Zone (Title / Audio)
             </div>
@@ -340,7 +419,7 @@ export function RemotionPreviewPlayer({
         <button
           type="button"
           onClick={togglePlay}
-          className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition cursor-pointer"
+          className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 opacity-0 group-hover/player:opacity-100 transition cursor-pointer"
         >
           <div className="w-14 h-14 rounded-full bg-black/70 backdrop-blur border border-white/20 flex items-center justify-center text-white shadow-2xl transition hover:scale-110">
             {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
@@ -358,7 +437,6 @@ export function RemotionPreviewPlayer({
 
       {/* BOTTOM PLAYBACK CONTROLS BAR */}
       <div className="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl p-3 flex items-center justify-between gap-2 shadow-lg">
-        {/* Play/Pause & Skip Buttons */}
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -406,7 +484,6 @@ export function RemotionPreviewPlayer({
 
         {/* Speed & Volume Controls */}
         <div className="flex items-center gap-2">
-          {/* Speed Toggle */}
           <button
             type="button"
             onClick={() => setPlaybackSpeed(playbackSpeed === 1 ? 1.5 : playbackSpeed === 1.5 ? 2 : 1)}
@@ -416,7 +493,6 @@ export function RemotionPreviewPlayer({
             {playbackSpeed}x
           </button>
 
-          {/* Mute Button */}
           <button
             type="button"
             onClick={() => setIsMuted(!isMuted)}
