@@ -57,6 +57,7 @@ export function TimelinePanel({
   const [rippleEdit, setRippleEdit] = useState<boolean>(true);
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [draggingClipId, setDraggingClipId] = useState<string | null>(null);
+  const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [dropGhost, setDropGhost] = useState<{ trackId: string; timeSec: number; percent: number } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -755,22 +756,33 @@ export function TimelinePanel({
                           const widthPct = (clip.duration / totalDuration) * 100;
                           const isActive =
                             currentTime >= clip.startTime && currentTime < clip.startTime + clip.duration;
+                          const isSelected = selectedClipId === clip.id;
+                          const isDraggingAny = draggingClipId !== null;
                           const transBadge = getTransitionBadge(clip.transition);
 
                           return (
                             <div
                               key={clip.id}
                               draggable={true}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedClipId(clip.id);
+                                onSeek(clip.startTime);
+                              }}
                               onDragStart={(e) => handleClipDragStart(e, clip.id)}
                               onDragOver={(e) => e.preventDefault()}
                               onDrop={(e) => handleClipDropOnClip(e, clip.id)}
                               style={{ width: `${widthPct}%` }}
-                              className={`h-full border-r border-black/80 relative transition group cursor-grab active:cursor-grabbing select-none overflow-hidden flex flex-col justify-between ${
-                                isActive
-                                  ? 'ring-2 ring-white ring-inset z-10'
-                                  : 'hover:brightness-110'
+                              className={`h-full relative transition group cursor-grab active:cursor-grabbing select-none overflow-hidden flex flex-col justify-between ${
+                                isSelected
+                                  ? 'ring-2 ring-white ring-inset shadow-[0_0_16px_rgba(255,255,255,0.8)] z-20 border-x-2 border-white'
+                                  : isDraggingAny
+                                  ? 'border-x-2 border-white shadow-[0_0_10px_rgba(255,255,255,0.5)] z-10'
+                                  : isActive
+                                  ? 'ring-1 ring-white/80 ring-inset border-r border-black/80'
+                                  : 'border-r border-black/80 hover:brightness-110'
                               }`}
-                              title={`${clip.assetId} (${clip.startTime}s - ${(clip.startTime + clip.duration).toFixed(1)}s) • One image after another • Drag to reorder`}
+                              title={`${clip.assetId} (${clip.startTime}s - ${(clip.startTime + clip.duration).toFixed(1)}s) • Click to select cut • Drag to shuffle`}
                             >
                               {/* Background Thumbnail Image Filling Card ("One Image After Another") */}
                               <div className="absolute inset-0 z-0 overflow-hidden bg-zinc-900">
@@ -789,12 +801,33 @@ export function TimelinePanel({
                                 <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-transparent to-black/85 pointer-events-none" />
                               </div>
 
-                              {/* Top Bar: Sequence Number + Asset Tag + Drag Grip */}
+                              {/* Distinct Cut Edge Razor Lines when clicked/selected */}
+                              {isSelected && (
+                                <>
+                                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-white z-30 shadow-[0_0_8px_white]" />
+                                  <div className="absolute right-0 top-0 bottom-0 w-1 bg-white z-30 shadow-[0_0_8px_white]" />
+                                </>
+                              )}
+
+                              {/* High-Contrast Clear Edge Dividers during dragging for shuffling */}
+                              {isDraggingAny && !isSelected && (
+                                <>
+                                  <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-white z-20 shadow-[0_0_6px_white]" />
+                                  <div className="absolute right-0 top-0 bottom-0 w-0.5 bg-white z-20 shadow-[0_0_6px_white]" />
+                                </>
+                              )}
+
+                              {/* Top Bar: Sequence Number + Asset Tag + Drag Grip + Cut Badge */}
                               <div className="relative z-10 p-1 flex items-center justify-between text-[9px] font-mono leading-none truncate">
                                 <span className="font-bold text-white flex items-center gap-1 drop-shadow-sm">
                                   <GripHorizontal className="w-2.5 h-2.5 text-zinc-300 group-hover:text-white" />
                                   <span className="text-zinc-300 font-normal">#{idx + 1}</span>
                                   <span>{clip.assetId}</span>
+                                  {isSelected && (
+                                    <span className="px-1 py-0.2 rounded bg-white text-black text-[7px] font-black tracking-wider flex items-center gap-0.5 shadow">
+                                      <Scissors className="w-2 h-2 text-black" /> CUT
+                                    </span>
+                                  )}
                                 </span>
 
                                 <div className="flex items-center gap-1">
@@ -848,20 +881,32 @@ export function TimelinePanel({
                           const isNow = currentTime >= clip.startTime && currentTime < clip.startTime + clip.duration;
                           const isUnderPlayhead = currentTime > clip.startTime + 0.2 && currentTime < clip.startTime + clip.duration - 0.2;
 
+                          const isSelected = selectedClipId === clip.id;
+
                           return (
                             <div
                               key={clip.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedClipId(clip.id);
+                                onSeek(clip.startTime);
+                              }}
                               style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
-                              className={`absolute h-5.5 rounded-md px-1.5 flex items-center justify-between text-[8px] font-mono border transition group ${
-                                isNow
+                              className={`absolute h-5.5 rounded-md px-1.5 flex items-center justify-between text-[8px] font-mono border transition cursor-pointer select-none group ${
+                                isSelected
+                                  ? 'bg-white text-black border-white shadow-[0_0_12px_white] z-20 font-bold'
+                                  : isNow
                                   ? 'bg-zinc-700 text-white border-white shadow-md'
-                                  : 'bg-zinc-800/95 text-zinc-200 border-zinc-600'
+                                  : 'bg-zinc-800/95 text-zinc-200 border-zinc-600 hover:border-zinc-400'
                               }`}
-                              title={`B-Roll Overlay: ${clip.assetId} (${clip.startTime}s - ${(clip.startTime + clip.duration).toFixed(1)}s)`}
+                              title={`B-Roll Overlay: ${clip.assetId} (${clip.startTime}s - ${(clip.startTime + clip.duration).toFixed(1)}s) • Click to select cut`}
                             >
                               <div className="flex items-center gap-1 truncate">
                                 <span className="font-bold truncate">[{clip.assetId}]</span>
-                                <span className="text-[7px] text-zinc-400">{clip.duration.toFixed(1)}s</span>
+                                <span className="text-[7px] opacity-75">{clip.duration.toFixed(1)}s</span>
+                                {isSelected && (
+                                  <span className="px-1 py-0.2 rounded bg-black text-white text-[7px] font-black">CUT</span>
+                                )}
                               </div>
 
                               <div className="flex items-center gap-1">
@@ -972,16 +1017,30 @@ export function TimelinePanel({
                           const widthPct = (clip.duration / totalDuration) * 100;
                           const isUnderPlayhead = currentTime > clip.startTime + 0.2 && currentTime < clip.startTime + clip.duration - 0.2;
 
+                          const isSelected = selectedClipId === clip.id;
+
                           return (
                             <div
                               key={clip.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedClipId(clip.id);
+                                onSeek(clip.startTime);
+                              }}
                               style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
-                              className="absolute h-5.5 rounded-md px-1.5 flex items-center justify-between text-[8px] font-mono bg-zinc-800 border border-zinc-600 text-zinc-200 group"
-                              title={`Audio: ${clip.assetId} (${clip.startTime}s - ${(clip.startTime + clip.duration).toFixed(1)}s)`}
+                              className={`absolute h-5.5 rounded-md px-1.5 flex items-center justify-between text-[8px] font-mono border transition cursor-pointer select-none group ${
+                                isSelected
+                                  ? 'bg-white text-black border-white shadow-[0_0_12px_white] z-20 font-bold'
+                                  : 'bg-zinc-800 border border-zinc-600 text-zinc-200 hover:border-zinc-400'
+                              }`}
+                              title={`Audio: ${clip.assetId} (${clip.startTime}s - ${(clip.startTime + clip.duration).toFixed(1)}s) • Click to select cut`}
                             >
                               <div className="flex items-center gap-1 truncate">
                                 <span className="font-bold truncate">[{clip.assetId}]</span>
-                                <span className="text-[7px] text-zinc-400">{clip.duration.toFixed(1)}s</span>
+                                <span className="text-[7px] opacity-75">{clip.duration.toFixed(1)}s</span>
+                                {isSelected && (
+                                  <span className="px-1 py-0.2 rounded bg-black text-white text-[7px] font-black">CUT</span>
+                                )}
                               </div>
 
                               <div className="flex items-center gap-1">

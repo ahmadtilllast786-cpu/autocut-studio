@@ -95,14 +95,14 @@ export function Navbar({
           type="button"
           onClick={onOpenExport}
           disabled={!hasClips}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition cursor-pointer ${
             hasClips
-              ? 'bg-[#27272a] hover:bg-[#3f3f46] text-[#ededed] border border-[#3f3f46] active:scale-95'
+              ? 'bg-white hover:bg-zinc-200 text-black border border-white shadow active:scale-95'
               : 'bg-[#18181b] text-zinc-600 border border-[#27272a] cursor-not-allowed'
           }`}
         >
           <Download className="w-3.5 h-3.5" />
-          <span>Export 1080x1920</span>
+          <span>Export Video</span>
         </button>
       </div>
     </header>

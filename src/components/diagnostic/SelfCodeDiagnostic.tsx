@@ -89,15 +89,7 @@ export function SelfCodeDiagnostic({
     executeScan();
   }, [executeScan]);
 
-  // Dev Guard: Only render in development, or when NEXT_PUBLIC_DEV_SCANNER=true, or when ?selfcode=true query is provided
-  if (
-    process.env.NODE_ENV === 'production' &&
-    !process.env.NEXT_PUBLIC_DEV_SCANNER &&
-    typeof window !== 'undefined' &&
-    !window.location.search.includes('selfcode=true')
-  ) {
-    return null;
-  }
+  // Self Code Diagnostic is always accessible to inspect working vs dead code
 
   const deadCount = report ? report.deadCount : 0;
   const activeCount = report ? report.activeCount : 0;
@@ -149,32 +141,36 @@ export function SelfCodeDiagnostic({
         }}
         className="select-none pointer-events-auto font-sans"
       >
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          style={{
-            backgroundColor: '#ef4444',
-            color: '#ffffff',
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
-          }}
-          className="relative flex flex-col items-center justify-center text-white shadow-2xl shadow-red-500/40 hover:scale-105 active:scale-95 transition-all duration-150 cursor-pointer border-2 border-white/20 focus:outline-none ring-2 ring-red-500/30"
-          title="Self Code Feature Analyzer: Programmatic inspection of wired vs dead code"
-        >
-          <Bug className="w-4 h-4 mb-0.5 text-white" />
-          <span className="text-[9px] font-black uppercase tracking-tight leading-none text-white">
-            Self code
-          </span>
-
-          {/* Live Counter Badge at top-right edge of button */}
-          <span
-            className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full bg-zinc-950 text-white font-mono text-[10px] font-black border-2 border-[#ef4444] flex items-center justify-center shadow-lg"
-            title={`${deadCount} mock/dead features detected`}
+        <div className="relative">
+          {/* Ambient Glowing Pulse Ring for Instant Self-Recognition */}
+          <span className="absolute -inset-1 rounded-full bg-red-500/30 animate-ping pointer-events-none" />
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            style={{
+              backgroundColor: '#ef4444',
+              color: '#ffffff',
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+            }}
+            className="relative flex flex-col items-center justify-center text-white shadow-[0_0_25px_rgba(239,68,68,0.5)] hover:scale-105 active:scale-95 transition-all duration-150 cursor-pointer border-2 border-white focus:outline-none ring-4 ring-red-500/30"
+            title="Self Code Feature Analyzer: Programmatic inspection of wired vs dead code"
           >
-            {deadCount}
-          </span>
-        </button>
+            <Bug className="w-4 h-4 mb-0.5 text-white" />
+            <span className="text-[9px] font-black uppercase tracking-tight leading-none text-white drop-shadow">
+              Self code
+            </span>
+
+            {/* Live Counter Badge at top-right edge of button */}
+            <span
+              className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 rounded-full bg-black text-white font-mono text-[10px] font-black border-2 border-white flex items-center justify-center shadow-lg"
+              title={`${deadCount} mock/dead features detected`}
+            >
+              {deadCount}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* ========================================================================= */}
@@ -249,6 +245,26 @@ export function SelfCodeDiagnostic({
                   <RefreshCw className={`w-3.5 h-3.5 text-zinc-300 ${isScanning ? 'animate-spin' : ''}`} />
                   <span>{isScanning ? 'Scanning...' : 'Run Full Scan'}</span>
                 </button>
+              </div>
+
+              {/* Live App State & Diagnostics Inspector Grid */}
+              <div className="grid grid-cols-4 gap-2 bg-[#09090b] border border-[#27272a] rounded-xl p-2.5 text-[10px] font-mono">
+                <div className="flex flex-col">
+                  <span className="text-zinc-500 uppercase tracking-tighter text-[9px]">Media Bin</span>
+                  <span className="text-white font-bold">{assets.length} Assets</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-zinc-500 uppercase tracking-tighter text-[9px]">Timeline</span>
+                  <span className="text-white font-bold">{timeline.clips.length} Clips</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-zinc-500 uppercase tracking-tighter text-[9px]">Ratio</span>
+                  <span className="text-white font-bold">{timeline.aspectRatio || '9:16'}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-zinc-500 uppercase tracking-tighter text-[9px]">Playhead</span>
+                  <span className="text-white font-bold">{currentTime.toFixed(1)}s / {timeline.totalDuration}s</span>
+                </div>
               </div>
             </div>
 

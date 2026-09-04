@@ -32,9 +32,12 @@ const DEFAULT_SETTINGS: AppSettings = {
 };
 
 export default function AutoCutStudioPage() {
-  const [assets, setAssets] = useState<MediaAsset[]>(SAMPLE_ASSETS);
+  // Empty clean media bin ready for user's own uploads
+  const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [timeline, setTimeline] = useState<Timeline>({
     ...DEFAULT_TIMELINE,
+    clips: [],
+    subtitles: [],
     aspectRatio: '9:16',
     activeSubtitleStyle: 'bouncy-karaoke',
     captionPosition: { x: 50, y: 70 },

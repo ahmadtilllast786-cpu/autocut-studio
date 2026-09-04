@@ -189,84 +189,112 @@ export function MediaDrawerPanel({
           </div>
         </div>
 
-        {/* 3. Right Content Area: Dropzone + Asset Bin or Feature Sub-views */}
-        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3.5 bg-[#18181b]">
+        {/* 3. Right Content Area: Pinned Firm Upload Box + Scrollable Asset Bin */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-[#09090b]">
           {activeTab === 'media' && (
             <>
-              {/* Big, Clear, High-Visibility Upload Dropzone */}
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragging(true);
-                }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragging(false);
-                  handleFiles(e.dataTransfer.files);
-                }}
-                className={`border-2 border-dashed rounded-2xl p-5 sm:p-6 text-center transition-all relative overflow-hidden flex flex-col items-center justify-center gap-3 ${
-                  isDragging
-                    ? 'border-white bg-zinc-800/90 shadow-2xl scale-[1.01]'
-                    : 'border-zinc-600 bg-[#121214] hover:border-zinc-300 hover:bg-[#151518]'
-                }`}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="video/*,image/*,audio/*"
-                  className="hidden"
-                  onChange={(e) => handleFiles(e.target.files)}
-                />
-                
-                {/* Big Upload Cloud Icon */}
-                <div className="w-12 h-12 rounded-2xl bg-[#1e1e24] border border-[#3f3f46] flex items-center justify-center text-white shadow-md">
-                  <UploadCloud className="w-6 h-6 text-zinc-200" />
-                </div>
-
-                <div>
-                  <div className="text-sm font-bold text-white tracking-tight">
-                    Upload Videos, Photos & Audio
-                  </div>
-                  <div className="text-xs text-zinc-400 mt-0.5">
-                    Drag and drop your raw media files directly here
-                  </div>
-                </div>
-
-                {/* Clear Format Badges */}
-                <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                  {['MP4', 'MOV', 'PNG', 'JPG', 'MP3', 'WAV'].map((ext) => (
-                    <span
-                      key={ext}
-                      className="px-2 py-0.5 rounded-md bg-[#1e1e24] border border-[#3f3f46] text-[10px] font-mono font-bold text-zinc-300"
-                    >
-                      .{ext}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Big Clear Upload Button */}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="mt-1 px-5 py-2 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-200 shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex items-center gap-2"
+              {/* FIRM PINNED UPLOAD BOX: Stays stationary, never moves or twitches */}
+              <div className="p-3 border-b border-[#27272a] bg-[#121214] flex-shrink-0">
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    handleFiles(e.dataTransfer.files);
+                  }}
+                  className={`border-2 rounded-xl p-3 text-center transition-colors relative flex flex-col gap-2 ${
+                    isDragging
+                      ? 'border-white bg-[#1e1e24]'
+                      : 'border-dashed border-[#3f3f46] bg-[#09090b] hover:border-white'
+                  }`}
                 >
-                  <Upload className="w-4 h-4" />
-                  <span>Browse & Upload Files</span>
-                </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="video/*,image/*,audio/*"
+                    className="hidden"
+                    onChange={(e) => handleFiles(e.target.files)}
+                  />
+
+                  {/* Firm, crisp black-and-white header row */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 text-left">
+                      <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-bold flex-shrink-0 shadow">
+                        <UploadCloud className="w-4 h-4 text-black" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-black text-white tracking-tight uppercase">
+                          Upload Media Files
+                        </div>
+                        <div className="text-[10px] text-zinc-400">
+                          Drop videos, photos & audio here
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-black hover:bg-zinc-200 transition cursor-pointer flex items-center gap-1.5 shadow"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-black" />
+                      <span>Browse</span>
+                    </button>
+                  </div>
+
+                  {/* Format Pills */}
+                  <div className="flex items-center justify-between gap-1 flex-wrap pt-1.5 border-t border-[#27272a]">
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {['MP4', 'MOV', 'PNG', 'JPG', 'MP3', 'WAV'].map((ext) => (
+                        <span
+                          key={ext}
+                          className="px-1.5 py-0.2 rounded bg-[#18181b] border border-[#27272a] text-[9px] font-mono font-bold text-zinc-300"
+                        >
+                          .{ext}
+                        </span>
+                      ))}
+                    </div>
+                    <span className="text-[9px] font-mono text-zinc-500">Auto-Tag</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Asset Bin Header with Draggable Instruction */}
-              <div className="flex items-center justify-between text-xs font-semibold text-zinc-300 pt-1">
-                <div className="flex items-center gap-1.5">
-                  <span>Asset Bin ({assets.length})</span>
-                  <span className="text-[10px] text-zinc-400 font-normal hidden sm:inline">
-                    • Drag onto timeline tracks
-                  </span>
+              {/* Scrollable Asset Bin below the firm upload box */}
+              <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2.5 bg-[#09090b]">
+                {/* Asset Bin Header with Draggable Instruction */}
+                <div className="flex items-center justify-between text-xs font-bold text-white pb-1">
+                  <div className="flex items-center gap-1.5">
+                    <span>Your Media ({assets.length})</span>
+                    <span className="text-[10px] text-zinc-400 font-normal hidden sm:inline">
+                      • Drag to timeline
+                    </span>
+                  </div>
+                  {assets.length > 0 && (
+                    <span className="text-[10px] font-mono text-zinc-400">{assets.length} Ready</span>
+                  )}
                 </div>
-                <span className="text-[10px] font-mono text-zinc-500">Auto-Tagged</span>
-              </div>
+
+                {assets.length === 0 && (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border border-dashed border-[#27272a] rounded-xl text-zinc-500 my-4">
+                    <Upload className="w-7 h-7 mb-2 opacity-40 text-zinc-400" />
+                    <span className="text-xs font-bold text-white">Your Media Bin is Empty</span>
+                    <span className="text-[10px] text-zinc-400 mt-1 max-w-[200px]">
+                      Upload your own videos or photos above to direct your viral short
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="mt-3 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-white text-black hover:bg-zinc-200 transition cursor-pointer shadow"
+                    >
+                      Upload Media
+                    </button>
+                  </div>
+                )}
 
               {/* Asset Grid List (Draggable Cards) */}
               <div className="grid grid-cols-2 gap-2">
@@ -351,8 +379,9 @@ export function MediaDrawerPanel({
                   </div>
                 ))}
               </div>
-            </>
-          )}
+            </div>
+          </>
+        )}
 
           {/* Transitions Feature View */}
           {activeTab === 'transitions' && (
