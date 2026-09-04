@@ -82,10 +82,18 @@ export function RemotionPreviewPlayer({
     return () => observer.disconnect();
   }, [currentRatio]);
 
-  // Find active clip at currentTime
-  const activeClip = timeline.clips.find(
-    (c) => currentTime >= c.startTime && currentTime < c.startTime + c.duration
-  ) || timeline.clips[timeline.clips.length - 1];
+  // Find active main clip at currentTime (videos/photos on the main sequence line)
+  const activeClip =
+    timeline.clips.find(
+      (c) => (!c.trackId || c.trackId === 'main') && currentTime >= c.startTime && currentTime < c.startTime + c.duration
+    ) ||
+    timeline.clips.find((c) => !c.trackId || c.trackId === 'main') ||
+    timeline.clips[timeline.clips.length - 1];
+
+  // Active overlay / B-roll clips (placed in lines above the main timeline)
+  const activeOverlayClips = timeline.clips.filter(
+    (c) => c.trackId?.startsWith('overlay') && currentTime >= c.startTime && currentTime < c.startTime + c.duration
+  );
 
   const activeAsset = activeClip ? assets.find((a) => a.id === activeClip.assetId) : null;
   const isVideo = activeAsset?.type === 'video';
@@ -448,6 +456,40 @@ export function RemotionPreviewPlayer({
             </>
           )}
         </div>
+
+        {/* Layer 1.5: Active B-Roll / Overlay Track Clips (Tracks placed above main timeline) */}
+        {activeOverlayClips.map((overlayClip) => {
+          const overlayAsset = assets.find((a) => a.id === overlayClip.assetId);
+          if (!overlayAsset) return null;
+          const isOverlayVid = overlayAsset.type === 'video';
+          return (
+            <div
+              key={overlayClip.id}
+              className="absolute inset-x-4 top-12 h-44 rounded-xl overflow-hidden shadow-2xl border-2 border-indigo-500/80 z-[8] bg-black/60 pointer-events-none"
+            >
+              <div className="absolute top-1.5 left-2 px-1.5 py-0.5 rounded bg-indigo-600/90 text-[9px] font-bold text-white tracking-wider uppercase z-10 flex items-center gap-1 shadow">
+                <span>B-ROLL OVERLAY</span>
+              </div>
+              {isOverlayVid ? (
+                <video
+                  src={overlayAsset.url}
+                  muted
+                  playsInline
+                  autoPlay
+                  loop
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={overlayAsset.type === 'image' ? overlayAsset.url : overlayAsset.thumbnailUrl}
+                  alt={overlayAsset.name}
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </div>
+          );
+        })}
 
         {/* Layer 2: Interactive Draggable Captions Overlay with Snapping */}
         <DraggableCaptionOverlay

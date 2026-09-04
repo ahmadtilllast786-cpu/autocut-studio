@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Timeline, MediaAsset, TimelineClip } from '@/types/timeline';
+import React, { useState, useRef, useMemo } from 'react';
+import { Timeline, MediaAsset, TimelineClip, TimelineTrack } from '@/types/timeline';
 import { extractSpeechIntervals } from '@/lib/audioEngine';
 import {
   Scissors,
@@ -13,8 +13,14 @@ import {
   Film,
   Music,
   Subtitles,
-  Sparkles,
   Plus,
+  Shuffle,
+  Trash2,
+  X,
+  GripHorizontal,
+  Eye,
+  Lock,
+  Volume2,
 } from 'lucide-react';
 
 interface TimelinePanelProps {
@@ -25,6 +31,19 @@ interface TimelinePanelProps {
   onUpdateClips?: (clips: TimelineClip[]) => void;
 }
 
+const INITIAL_TRACKS: TimelineTrack[] = [
+  // Above Lines (Overlay & B-Items)
+  { id: 'overlay_1', label: 'B-Roll / Overlay 1', type: 'overlay-broll', position: 'above' },
+  { id: 'overlay_2', label: 'B-Roll / Overlay 2', type: 'overlay-broll', position: 'above' },
+  { id: 'captions', label: 'Dynamic Captions', type: 'captions', position: 'above' },
+  // Center Straight-Line Video & Photo Track
+  { id: 'main', label: 'Main Sequence (Videos & Pics)', type: 'video-main', position: 'main' },
+  // Below Lines (Audio Stems & Tracks)
+  { id: 'audio_vo', label: 'VO_TRACK (Voiceover)', type: 'audio-vo', position: 'below' },
+  { id: 'audio_bgm', label: 'BG_MUSIC (Ducked -16dB)', type: 'audio-bgm', position: 'below' },
+  { id: 'audio_sfx', label: 'Audio Line 3 (SFX / Stems)', type: 'audio-sfx', position: 'below' },
+];
+
 export function TimelinePanel({
   timeline,
   assets,
@@ -32,14 +51,215 @@ export function TimelinePanel({
   onSeek,
   onUpdateClips,
 }: TimelinePanelProps) {
-  const [zoomLevel, setZoomLevel] = useState<number>(1.0); // 0.8x to 2.5x
+  const [tracks, setTracks] = useState<TimelineTrack[]>(INITIAL_TRACKS);
+  const [zoomLevel, setZoomLevel] = useState<number>(1.0); // 0.8x to 2.0x
   const [magnetSnapping, setMagnetSnapping] = useState<boolean>(true);
   const [rippleEdit, setRippleEdit] = useState<boolean>(true);
   const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [draggingClipId, setDraggingClipId] = useState<string | null>(null);
+  const [dropGhost, setDropGhost] = useState<{ trackId: string; timeSec: number; percent: number } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const totalDuration = timeline.totalDuration || 60;
   const speechIntervals = extractSpeechIntervals(timeline.subtitles);
+
+  // Asset lookup map
+  const assetMap = useMemo(() => {
+    const map = new Map<string, MediaAsset>();
+    assets.forEach((a) => map.set(a.id, a));
+    return map;
+  }, [assets]);
+
+  // Main track clips (straight line video & pictures)
+  const mainClips = useMemo(() => {
+    return timeline.clips
+      .filter((c) => !c.trackId || c.trackId === 'main')
+      .sort((a, b) => a.startTime - b.startTime);
+  }, [timeline.clips]);
+
+  // Add line above (up to 5 lines above)
+  const handleAddLineAbove = () => {
+    const aboveCount = tracks.filter((t) => t.position === 'above' && t.type === 'overlay-broll').length;
+    if (aboveCount >= 5) return;
+    const newId = `overlay_${Date.now()}`;
+    const newTrack: TimelineTrack = {
+      id: newId,
+      label: `B-Roll / Overlay ${aboveCount + 1}`,
+      type: 'overlay-broll',
+      position: 'above',
+      isCustom: true,
+    };
+    setTracks((prev) => [newTrack, ...prev]);
+  };
+
+  // Add line below (up to 5 lines below)
+  const handleAddLineBelow = () => {
+    const belowCount = tracks.filter((t) => t.position === 'below').length;
+    if (belowCount >= 6) return;
+    const newId = `audio_${Date.now()}`;
+    const newTrack: TimelineTrack = {
+      id: newId,
+      label: `Audio Line ${belowCount + 1} (Stem/SFX)`,
+      type: 'audio-sfx',
+      position: 'below',
+      isCustom: true,
+    };
+    setTracks((prev) => [...prev, newTrack]);
+  };
+
+  // Delete custom line
+  const handleDeleteTrack = (trackId: string) => {
+    setTracks((prev) => prev.filter((t) => t.id !== trackId));
+    onUpdateClips?.(timeline.clips.filter((c) => c.trackId !== trackId));
+  };
+
+  // 🔀 Shuffle the Straight Main Video & Picture sequence
+  const handleShuffleMain = () => {
+    const otherClips = timeline.clips.filter((c) => c.trackId && c.trackId !== 'main');
+    const clipsToShuffle = [...mainClips];
+    if (clipsToShuffle.length <= 1) return;
+
+    // Fisher-Yates shuffle
+    for (let i = clipsToShuffle.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [clipsToShuffle[i], clipsToShuffle[j]] = [clipsToShuffle[j], clipsToShuffle[i]];
+    }
+
+    // Recalculate contiguous linear start times on straight line
+    let curTime = 0;
+    const resequenced = clipsToShuffle.map((c) => {
+      const updated = { ...c, startTime: Number(curTime.toFixed(2)), trackId: 'main' };
+      curTime += c.duration;
+      return updated;
+    });
+
+    onUpdateClips?.([...resequenced, ...otherClips]);
+  };
+
+  // Main clip drag-to-shuffle reorder
+  const handleClipDragStart = (e: React.DragEvent, clipId: string) => {
+    e.stopPropagation();
+    setDraggingClipId(clipId);
+    e.dataTransfer.setData('text/plain', clipId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleClipDropOnClip = (e: React.DragEvent, targetClipId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!draggingClipId || draggingClipId === targetClipId) return;
+
+    const otherClips = timeline.clips.filter((c) => c.trackId && c.trackId !== 'main');
+    const list = [...mainClips];
+
+    const fromIdx = list.findIndex((c) => c.id === draggingClipId);
+    const toIdx = list.findIndex((c) => c.id === targetClipId);
+    if (fromIdx === -1 || toIdx === -1) return;
+
+    // Swap / Move clip to new slot
+    const [moved] = list.splice(fromIdx, 1);
+    list.splice(toIdx, 0, moved);
+
+    // Recompute contiguous timing along the straight line
+    let curTime = 0;
+    const resequenced = list.map((c) => {
+      const updated = { ...c, startTime: Number(curTime.toFixed(2)), trackId: 'main' };
+      curTime += c.duration;
+      return updated;
+    });
+
+    onUpdateClips?.([...resequenced, ...otherClips]);
+    setDraggingClipId(null);
+  };
+
+  // Drag over any track line ("put where we want")
+  const handleTrackDragOver = (e: React.DragEvent<HTMLDivElement>, trackId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    const timeSec = Number(((clickX / rect.width) * totalDuration).toFixed(2));
+    const percent = Math.max(0, Math.min(100, (clickX / rect.width) * 100));
+
+    setDropGhost({ trackId, timeSec, percent });
+  };
+
+  const handleTrackDragLeave = () => {
+    setDropGhost(null);
+  };
+
+  // Drop asset onto any track line at exact cursor timestamp
+  const handleTrackDrop = (e: React.DragEvent<HTMLDivElement>, trackId: string) => {
+    e.preventDefault();
+    setDropGhost(null);
+
+    const jsonStr = e.dataTransfer.getData('application/json');
+    if (!jsonStr) return;
+
+    try {
+      const data = JSON.parse(jsonStr) as { assetId: string; type: string; duration: number; name: string };
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+      const dropTime = Number(((clickX / rect.width) * totalDuration).toFixed(2));
+      const clipDuration = Number(Math.min(data.duration || 3.0, 6.0).toFixed(2));
+
+      const newClip: TimelineClip = {
+        id: `clip_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        assetId: data.assetId,
+        startTime: dropTime,
+        duration: clipDuration,
+        sourceStart: 0,
+        transition: 'punch_in',
+        motionEffect: 'ken_burns_zoom',
+        colorFilter: 'none',
+        trackId,
+      };
+
+      if (trackId === 'main') {
+        // Insert into straight line sequence and re-flow contiguously
+        const otherClips = timeline.clips.filter((c) => c.trackId && c.trackId !== 'main');
+        let insertIdx = mainClips.findIndex((c) => c.startTime > dropTime);
+        if (insertIdx === -1) insertIdx = mainClips.length;
+
+        const updatedMain = [...mainClips];
+        updatedMain.splice(insertIdx, 0, newClip);
+
+        let cur = 0;
+        const resequenced = updatedMain.map((c) => {
+          const u = { ...c, startTime: Number(cur.toFixed(2)), trackId: 'main' };
+          cur += c.duration;
+          return u;
+        });
+
+        onUpdateClips?.([...resequenced, ...otherClips]);
+      } else {
+        // B-Roll / Overlay or Audio Track: place exactly at dropTime ("put where we want")
+        onUpdateClips?.([...timeline.clips, newClip]);
+      }
+    } catch (err) {
+      console.error('Failed to parse dropped asset data:', err);
+    }
+  };
+
+  // Delete a clip from any track
+  const handleDeleteClip = (e: React.MouseEvent, clipId: string) => {
+    e.stopPropagation();
+    const remaining = timeline.clips.filter((c) => c.id !== clipId);
+
+    // If deleting from main track, re-flow contiguous timing
+    const remainingMain = remaining.filter((c) => !c.trackId || c.trackId === 'main');
+    const remainingOthers = remaining.filter((c) => c.trackId && c.trackId !== 'main');
+
+    let cur = 0;
+    const resequenced = remainingMain.map((c) => {
+      const u = { ...c, startTime: Number(cur.toFixed(2)), trackId: 'main' };
+      cur += c.duration;
+      return u;
+    });
+
+    onUpdateClips?.([...resequenced, ...remainingOthers]);
+  };
 
   // Blade tool: split the clip under playhead into two clips
   const handleBladeSplit = () => {
@@ -79,13 +299,13 @@ export function TimelinePanel({
     onUpdateClips?.(newClips);
   };
 
+  // Scrub playhead on pointer down
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const clickX = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
     let newTime = (clickX / rect.width) * totalDuration;
 
-    // Magnet snapping to closest cut boundary
     if (magnetSnapping) {
       for (const clip of timeline.clips) {
         if (Math.abs(newTime - clip.startTime) < 0.6) {
@@ -144,45 +364,74 @@ export function TimelinePanel({
         return '🥊 Punch In';
       case 'whip_pan':
       case 'whip-pan':
-        return '⚡ Whip Pan';
+        return '⚡ Whip';
       case 'ken_burns_zoom':
-        return '🔍 Ken Burns';
+        return '🔍 Zoom';
       case 'white_flash':
-        return '✨ White Flash';
-      case 'zoom-snap':
-        return '🔍 Snap';
-      case 'glitch':
-        return '👾 Glitch';
-      case 'cross-dissolve':
-        return '🔀 Dissolve';
-      case 'slide-left':
-        return '◀ Slide';
+        return '✨ Flash';
       default:
         return null;
     }
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#121214] text-zinc-200 select-none overflow-hidden">
-      {/* 1. Timeline Header Controls Toolbar */}
-      <div className="h-10 border-b border-[#27272a] bg-[#121214] px-3 flex items-center justify-between gap-3 flex-shrink-0">
-        <div className="flex items-center gap-1.5">
-          {/* Blade Tool */}
+    <div className="flex flex-col h-full w-full bg-[#121214] text-zinc-200 select-none overflow-hidden font-sans">
+      {/* ========================================================================= */}
+      {/* 1. TIMELINE CONTROLS TOOLBAR                                              */}
+      {/* ========================================================================= */}
+      <div className="h-10 border-b border-[#27272a] bg-[#121214] px-3 flex items-center justify-between gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Blade Split Tool */}
           <button
             type="button"
             onClick={handleBladeSplit}
             className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#18181b] hover:bg-[#27272a] text-zinc-300 text-xs font-medium border border-[#27272a] hover:border-zinc-500 transition cursor-pointer"
-            title="Blade Tool: Split active clip at playhead position"
+            title="Blade Tool: Split clip at playhead position"
           >
             <Scissors className="w-3.5 h-3.5 text-zinc-400" />
             <span className="hidden sm:inline">Split</span>
+          </button>
+
+          {/* 🔀 SHUFFLE SEQUENCE BUTTON */}
+          <button
+            type="button"
+            onClick={handleShuffleMain}
+            className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#18181b] hover:bg-[#27272a] text-zinc-200 text-xs font-semibold border border-[#27272a] hover:border-zinc-400 transition cursor-pointer"
+            title="Shuffle Straight Line: Reorder videos and photos sequence"
+          >
+            <Shuffle className="w-3.5 h-3.5 text-zinc-300" />
+            <span>Shuffle Main</span>
+          </button>
+
+          {/* + ADD LINE ABOVE BUTTON */}
+          <button
+            type="button"
+            onClick={handleAddLineAbove}
+            className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#18181b] hover:bg-[#27272a] text-zinc-300 text-xs font-medium border border-[#27272a] hover:border-zinc-500 transition cursor-pointer"
+            title="Add a new B-Roll / Overlay line above the main track (up to 5 lines)"
+          >
+            <Plus className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="hidden sm:inline">Add Line Above</span>
+            <span className="sm:hidden">+ Above</span>
+          </button>
+
+          {/* + ADD LINE BELOW BUTTON */}
+          <button
+            type="button"
+            onClick={handleAddLineBelow}
+            className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#18181b] hover:bg-[#27272a] text-zinc-300 text-xs font-medium border border-[#27272a] hover:border-zinc-500 transition cursor-pointer"
+            title="Add a new Audio / Stem line below the main track (up to 5 lines)"
+          >
+            <Plus className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="hidden sm:inline">Add Line Below</span>
+            <span className="sm:hidden">+ Below</span>
           </button>
 
           {/* Ripple Edit Toggle */}
           <button
             type="button"
             onClick={() => setRippleEdit(!rippleEdit)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border transition cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border transition cursor-pointer ${
               rippleEdit
                 ? 'bg-[#27272a] border-zinc-500 text-[#ededed]'
                 : 'bg-[#18181b] border-[#27272a] text-zinc-400 hover:text-white'
@@ -190,29 +439,29 @@ export function TimelinePanel({
             title="Ripple Edit Mode"
           >
             <Layers className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Ripple</span>
+            <span className="hidden md:inline">Ripple</span>
           </button>
 
           {/* Magnet Snapping Toggle */}
           <button
             type="button"
             onClick={() => setMagnetSnapping(!magnetSnapping)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border transition cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border transition cursor-pointer ${
               magnetSnapping
                 ? 'bg-[#27272a] border-zinc-500 text-[#ededed]'
                 : 'bg-[#18181b] border-[#27272a] text-zinc-400 hover:text-white'
             }`}
-            title="Magnet Snapping to clip boundaries"
+            title="Magnet Snapping"
           >
             <Magnet className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Snap</span>
+            <span className="hidden md:inline">Snap</span>
           </button>
 
-          {/* Record Voiceover */}
+          {/* Record Voiceover Toggle */}
           <button
             type="button"
             onClick={() => setIsRecording(!isRecording)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border transition cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border transition cursor-pointer ${
               isRecording
                 ? 'bg-zinc-800 border-zinc-500 text-zinc-200'
                 : 'bg-[#18181b] border-[#27272a] text-zinc-400 hover:text-white'
@@ -220,12 +469,12 @@ export function TimelinePanel({
             title="Record Voiceover"
           >
             <Mic className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="hidden sm:inline">Record</span>
+            <span className="hidden md:inline">Record</span>
           </button>
         </div>
 
         {/* Timecode & Zoom Slider */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <div className="font-mono text-xs font-medium text-zinc-200">
             <span className="text-[#ededed] font-semibold">{formatTime(currentTime)}</span>
             <span className="text-zinc-600 mx-1">/</span>
@@ -249,28 +498,97 @@ export function TimelinePanel({
         </div>
       </div>
 
-      {/* 2. Interactive Multi-Track Scroll Area */}
-      <div className="flex-1 overflow-x-auto overflow-y-auto p-3 bg-[#18181b]">
-        {timeline.clips.length === 0 ? (
-          /* Empty Placeholder */
-          <div className="h-44 border border-dashed border-[#27272a] rounded-xl flex flex-col items-center justify-center text-center p-6 text-zinc-500">
-            <Plus className="w-8 h-8 mb-2 text-zinc-600" />
-            <p className="text-sm font-medium text-zinc-300">
-              Drag material here and start to create
-            </p>
-            <p className="text-xs text-zinc-500 mt-1">
-              Upload raw assets or click &quot;Sample Pack&quot; in the Media Drawer
-            </p>
+      {/* ========================================================================= */}
+      {/* 2. MULTI-TRACK TIMELINE VIEWPORT (TRACK HEADERS + SCROLLABLE CANVAS)       */}
+      {/* ========================================================================= */}
+      <div className="flex-1 flex overflow-hidden bg-[#18181b]">
+        {/* Track Headers Column (Pinned Left) */}
+        <div className="w-48 border-r border-[#27272a] bg-[#121214] flex flex-col flex-shrink-0 overflow-y-hidden select-none">
+          {/* Header spacer aligned with ruler */}
+          <div className="h-6 border-b border-[#27272a] px-3 flex items-center justify-between text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+            <span>Tracks ({tracks.length})</span>
+            <span className="text-[9px] text-zinc-600">Drag Target</span>
           </div>
-        ) : (
+
+          {/* Track Headers List */}
+          <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar gap-1.5 p-1.5">
+            {tracks.map((track) => {
+              const isMain = track.id === 'main';
+              const isCaptions = track.id === 'captions';
+              const isOverlay = track.type === 'overlay-broll';
+              const isAudio = track.position === 'below';
+
+              return (
+                <div
+                  key={track.id}
+                  className={`px-2 py-1 rounded-lg border flex items-center justify-between text-xs transition ${
+                    isMain
+                      ? 'h-14 bg-[#18181b] border-zinc-500/50 shadow-xs'
+                      : isCaptions
+                      ? 'h-7 bg-[#121214] border-[#27272a]'
+                      : 'h-8 bg-[#121214] border-[#27272a]'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 truncate">
+                    {isMain ? (
+                      <Film className="w-3.5 h-3.5 text-zinc-200 flex-shrink-0" />
+                    ) : isCaptions ? (
+                      <Subtitles className="w-3 h-3 text-zinc-400 flex-shrink-0" />
+                    ) : isOverlay ? (
+                      <Layers className="w-3 h-3 text-zinc-400 flex-shrink-0" />
+                    ) : (
+                      <Music className="w-3 h-3 text-zinc-400 flex-shrink-0" />
+                    )}
+                    <span
+                      className={`text-[11px] truncate ${
+                        isMain ? 'font-bold text-[#ededed]' : 'font-medium text-zinc-300'
+                      }`}
+                      title={track.label}
+                    >
+                      {track.label}
+                    </span>
+                  </div>
+
+                  {/* Actions (Delete for custom lines, quick shuffle for main) */}
+                  <div className="flex items-center gap-1">
+                    {isMain && (
+                      <button
+                        type="button"
+                        onClick={handleShuffleMain}
+                        className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+                        title="Shuffle Main Sequence"
+                      >
+                        <Shuffle className="w-3 h-3" />
+                      </button>
+                    )}
+
+                    {track.isCustom && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTrack(track.id)}
+                        className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition cursor-pointer"
+                        title="Delete this custom track line"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Track Canvas Column (Scrollable Right) */}
+        <div className="flex-1 overflow-x-auto overflow-y-auto p-1.5 bg-[#18181b] select-none">
           <div
             ref={containerRef}
             onPointerDown={handlePointerDown}
             style={{ width: `${Math.max(100, zoomLevel * 100)}%` }}
             className="relative bg-[#121214] rounded-xl p-2 cursor-pointer border border-[#27272a] hover:border-[#3f3f46] transition flex flex-col gap-1.5 shadow-inner"
           >
-            {/* Time Ruler */}
-            <div className="relative h-5 border-b border-[#27272a] mb-1 flex items-center">
+            {/* Time Ruler (0s to 60s) */}
+            <div className="relative h-6 border-b border-[#27272a] mb-1 flex items-center">
               {rulerTicks.map((sec) => {
                 const leftPct = (sec / totalDuration) * 100;
                 return (
@@ -286,152 +604,319 @@ export function TimelinePanel({
               })}
             </div>
 
-            {/* TRACK 1: Dynamic Captions Track */}
-            <div className="relative h-6 bg-[#0d0d0e] rounded-md flex items-center overflow-hidden border border-[#27272a] px-1">
-              <span className="absolute left-1 text-[8px] font-medium text-zinc-300 uppercase tracking-tighter flex items-center gap-1 z-10 bg-[#121214] px-1 rounded pointer-events-none border border-[#27272a]">
-                <Subtitles className="w-2.5 h-2.5 text-zinc-400" /> Captions
-              </span>
+            {/* Render Each Track Row */}
+            {tracks.map((track) => {
+              const isMain = track.id === 'main';
+              const isCaptions = track.id === 'captions';
+              const isGhostActive = dropGhost?.trackId === track.id;
 
-              {timeline.subtitles.map((sub) => {
-                const leftPct = (sub.startTime / totalDuration) * 100;
-                const widthPct = ((sub.endTime - sub.startTime) / totalDuration) * 100;
-                const isSubActive = currentTime >= sub.startTime && currentTime <= sub.endTime;
+              // Clips belonging to this track
+              const trackClips = isMain
+                ? mainClips
+                : timeline.clips.filter((c) => c.trackId === track.id);
 
-                return (
-                  <div
-                    key={sub.id}
-                    style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
-                    className={`absolute h-4 rounded px-1 flex items-center transition-colors ${
-                      isSubActive
-                        ? 'bg-zinc-200 text-zinc-900 font-bold'
-                        : 'bg-zinc-800 border border-zinc-700 text-zinc-300'
-                    }`}
-                    title={sub.text}
-                  >
-                    <span className="text-[8px] truncate">{sub.text}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* TRACK 2: Main Video & Static Visual Cuts Track */}
-            <div className="relative h-12 bg-[#0d0d0e] rounded-md flex overflow-hidden border border-[#27272a]">
-              <div className="absolute left-1 top-0 bottom-0 flex items-center z-10 pointer-events-none">
-                <span className="text-[9px] font-medium text-zinc-300 uppercase tracking-tighter flex items-center gap-1 bg-[#121214] px-1 rounded border border-[#27272a]">
-                  <Film className="w-2.5 h-2.5 text-zinc-400" /> Main Video
-                </span>
-              </div>
-
-              {timeline.clips.map((clip, idx) => {
-                const widthPct = (clip.duration / totalDuration) * 100;
-                const isVideo = clip.assetId.startsWith('VID');
-                const isActive =
-                  currentTime >= clip.startTime && currentTime < clip.startTime + clip.duration;
-                const transBadge = getTransitionBadge(clip.transition);
-
-                return (
-                  <div
-                    key={clip.id || idx}
-                    style={{ width: `${widthPct}%` }}
-                    className={`h-full border-r border-[#121214] p-1 flex flex-col justify-center relative transition-colors ${
-                      isActive
-                        ? 'bg-zinc-800 border-t-2 border-t-zinc-300'
-                        : isVideo
-                        ? 'bg-zinc-900/90 hover:bg-zinc-800/60'
-                        : 'bg-zinc-900/60 hover:bg-zinc-800/40'
-                    }`}
-                    title={`${clip.assetId} (${clip.startTime}s - ${(clip.startTime + clip.duration).toFixed(1)}s)`}
-                  >
-                    <div className="flex items-center justify-between text-[10px] font-mono leading-none truncate">
-                      <span className="font-semibold text-zinc-200">
-                        {clip.assetId}
+              return (
+                <div
+                  key={track.id}
+                  onDragOver={(e) => handleTrackDragOver(e, track.id)}
+                  onDragLeave={handleTrackDragLeave}
+                  onDrop={(e) => handleTrackDrop(e, track.id)}
+                  className={`relative rounded-md flex items-center transition border ${
+                    isMain
+                      ? 'h-14 bg-[#0d0d0e] border-[#27272a] overflow-hidden'
+                      : isCaptions
+                      ? 'h-7 bg-[#0d0d0e] border-[#27272a] overflow-hidden px-1'
+                      : 'h-8 bg-[#0d0d0e] border-[#27272a] overflow-hidden px-1'
+                  } ${isGhostActive ? 'ring-1 ring-zinc-400 bg-zinc-900/50' : ''}`}
+                >
+                  {/* Drop Ghost Marker ("Put where we want") */}
+                  {isGhostActive && dropGhost && (
+                    <div
+                      style={{ left: `${dropGhost.percent}%` }}
+                      className="absolute top-0 bottom-0 w-1 bg-white z-40 pointer-events-none shadow-[0_0_8px_white]"
+                    >
+                      <span className="absolute -top-4 -translate-x-1/2 px-1 py-0.2 rounded bg-white text-black font-mono text-[8px] font-black">
+                        {dropGhost.timeSec}s
                       </span>
-                      {transBadge && (
-                        <span className="text-[8px] px-1 py-0.2 rounded bg-black/60 text-zinc-400">
-                          {transBadge}
-                        </span>
+                    </div>
+                  )}
+
+                  {/* ======================================================= */}
+                  {/* TRACK TYPE: DYNAMIC CAPTIONS                            */}
+                  {/* ======================================================= */}
+                  {isCaptions && (
+                    <>
+                      <span className="absolute left-1 text-[8px] font-medium text-zinc-400 uppercase tracking-tighter flex items-center gap-1 z-10 bg-[#121214] px-1 rounded pointer-events-none border border-[#27272a]">
+                        <Subtitles className="w-2.5 h-2.5" /> Captions
+                      </span>
+
+                      {timeline.subtitles.map((sub) => {
+                        const leftPct = (sub.startTime / totalDuration) * 100;
+                        const widthPct = ((sub.endTime - sub.startTime) / totalDuration) * 100;
+                        const isSubActive = currentTime >= sub.startTime && currentTime <= sub.endTime;
+
+                        return (
+                          <div
+                            key={sub.id}
+                            style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                            className={`absolute h-4 rounded px-1 flex items-center transition-colors ${
+                              isSubActive
+                                ? 'bg-zinc-200 text-zinc-900 font-bold'
+                                : 'bg-zinc-800 border border-zinc-700 text-zinc-300'
+                            }`}
+                            title={sub.text}
+                          >
+                            <span className="text-[8px] truncate">{sub.text}</span>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+
+                  {/* ======================================================= */}
+                  {/* TRACK TYPE: MAIN STRAIGHT-LINE VIDEO & PICS (SHUFFLE)   */}
+                  {/* ======================================================= */}
+                  {isMain && (
+                    <div className="w-full h-full flex relative overflow-hidden">
+                      {mainClips.length === 0 ? (
+                        <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-500 font-mono">
+                          Drag videos & photos here to build straight sequence
+                        </div>
+                      ) : (
+                        mainClips.map((clip) => {
+                          const asset = assetMap.get(clip.assetId);
+                          const isVideo = clip.assetId.startsWith('VID');
+                          const widthPct = (clip.duration / totalDuration) * 100;
+                          const isActive =
+                            currentTime >= clip.startTime && currentTime < clip.startTime + clip.duration;
+                          const transBadge = getTransitionBadge(clip.transition);
+
+                          return (
+                            <div
+                              key={clip.id}
+                              draggable={true}
+                              onDragStart={(e) => handleClipDragStart(e, clip.id)}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={(e) => handleClipDropOnClip(e, clip.id)}
+                              style={{ width: `${widthPct}%` }}
+                              className={`h-full border-r border-[#121214] p-1 flex flex-col justify-between relative transition group cursor-grab active:cursor-grabbing select-none ${
+                                isActive
+                                  ? 'bg-zinc-800 border-t-2 border-t-zinc-200'
+                                  : isVideo
+                                  ? 'bg-zinc-900/95 hover:bg-zinc-800/80'
+                                  : 'bg-zinc-900/70 hover:bg-zinc-800/60'
+                              }`}
+                              title={`${clip.assetId} (${clip.startTime}s - ${(clip.startTime + clip.duration).toFixed(1)}s) • Drag to shuffle order`}
+                            >
+                              {/* Top Bar: Asset ID + Shuffle Handle + Delete */}
+                              <div className="flex items-center justify-between text-[9px] font-mono leading-none truncate">
+                                <span className="font-bold text-[#ededed] flex items-center gap-1">
+                                  <GripHorizontal className="w-2.5 h-2.5 text-zinc-500 group-hover:text-zinc-300" />
+                                  [{clip.assetId}]
+                                </span>
+
+                                <div className="flex items-center gap-1">
+                                  {transBadge && (
+                                    <span className="text-[7px] px-1 py-0.2 rounded bg-black/60 text-zinc-400">
+                                      {transBadge}
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleDeleteClip(e, clip.id)}
+                                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-red-400 transition cursor-pointer"
+                                  >
+                                    <X className="w-2.5 h-2.5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Center Thumbnail / Icon Preview */}
+                              <div className="flex items-center gap-1 overflow-hidden h-6">
+                                {asset?.thumbnailUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={asset.thumbnailUrl}
+                                    alt=""
+                                    className="w-8 h-full object-cover rounded pointer-events-none opacity-80"
+                                  />
+                                ) : (
+                                  <Film className="w-3.5 h-3.5 text-zinc-500" />
+                                )}
+                                <span className="text-[8px] text-zinc-400 truncate">
+                                  {asset?.name || clip.assetId}
+                                </span>
+                              </div>
+
+                              {/* Bottom Duration */}
+                              <div className="text-[8px] text-zinc-500 font-mono leading-none flex items-center justify-between">
+                                <span>{clip.duration.toFixed(1)}s</span>
+                                <span className="text-[7px] text-zinc-600 uppercase">
+                                  {clip.motionEffect !== 'none' ? clip.motionEffect : 'cut'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
                       )}
                     </div>
-                    <div className="text-[8px] text-zinc-500 font-mono mt-1 truncate">
-                      {clip.duration.toFixed(1)}s {clip.motionEffect !== 'none' && `• ${clip.motionEffect}`}
+                  )}
+
+                  {/* ======================================================= */}
+                  {/* TRACK TYPE: OVERLAY / B-ITEMS LINES (ABOVE MAIN)       */}
+                  {/* ======================================================= */}
+                  {track.type === 'overlay-broll' && (
+                    <div className="w-full h-full relative flex items-center">
+                      {trackClips.length === 0 ? (
+                        <div className="text-[9px] text-zinc-600 font-mono px-2">
+                          Drop B-Roll / Picture overlay here (&quot;put where you want&quot;)
+                        </div>
+                      ) : (
+                        trackClips.map((clip) => {
+                          const asset = assetMap.get(clip.assetId);
+                          const leftPct = (clip.startTime / totalDuration) * 100;
+                          const widthPct = (clip.duration / totalDuration) * 100;
+                          const isNow = currentTime >= clip.startTime && currentTime < clip.startTime + clip.duration;
+
+                          return (
+                            <div
+                              key={clip.id}
+                              style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                              className={`absolute h-5 rounded px-1.5 flex items-center justify-between text-[8px] font-mono border transition group ${
+                                isNow
+                                  ? 'bg-zinc-700 text-white border-zinc-400'
+                                  : 'bg-zinc-800/90 text-zinc-300 border-zinc-700'
+                              }`}
+                              title={`Overlay: ${clip.assetId} at ${clip.startTime}s`}
+                            >
+                              <span className="font-bold truncate">[{clip.assetId}]</span>
+                              <span className="text-[7px] text-zinc-400">{clip.duration}s</span>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteClip(e, clip.id)}
+                                className="opacity-0 group-hover:opacity-100 ml-1 text-zinc-400 hover:text-red-400 cursor-pointer"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  )}
 
-            {/* TRACK 3: Overlay / B-Roll Track */}
-            <div className="relative h-6 bg-[#0d0d0e] rounded-md flex items-center overflow-hidden border border-[#27272a] px-1">
-              <span className="absolute left-1 text-[8px] font-medium text-zinc-500 uppercase tracking-tighter flex items-center gap-1 z-10 bg-[#121214] px-1 rounded pointer-events-none border border-[#27272a]">
-                <Layers className="w-2.5 h-2.5 text-zinc-500" /> Overlay / B-Roll
-              </span>
-              <div className="w-full text-center text-[9px] text-zinc-600 font-mono">
-                Empty Layer
-              </div>
-            </div>
-
-            {/* TRACK 4: Voiceover Track (VO_TRACK) */}
-            <div className="relative h-7 bg-[#0d0d0e] rounded-md flex items-center overflow-hidden border border-[#27272a] px-1">
-              <span className="absolute left-1 text-[8px] font-medium text-zinc-300 uppercase tracking-tighter flex items-center gap-1 z-10 bg-[#121214] px-1 rounded pointer-events-none border border-[#27272a]">
-                <Mic className="w-2.5 h-2.5 text-zinc-400" /> VO_TRACK
-              </span>
-
-              {speechIntervals.map((interval, idx) => {
-                const leftPct = (interval.start / totalDuration) * 100;
-                const widthPct = ((interval.end - interval.start) / totalDuration) * 100;
-                const isSpeakingNow = currentTime >= interval.start && currentTime <= interval.end;
-
-                return (
-                  <div
-                    key={idx}
-                    style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
-                    className={`absolute h-4 rounded px-1 flex items-center transition-colors ${
-                      isSpeakingNow
-                        ? 'bg-zinc-200 text-zinc-900 font-bold'
-                        : 'bg-zinc-800 border border-zinc-700 text-zinc-300'
-                    }`}
-                  >
-                    <span className="text-[8px] font-mono truncate">Speech</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* TRACK 5: Background Music Track (BG_MUSIC) with Ducking */}
-            <div className="relative h-7 bg-[#0d0d0e] rounded-md flex items-center overflow-hidden border border-[#27272a] px-1">
-              <span className="absolute left-1 text-[8px] font-medium text-zinc-300 uppercase tracking-tighter flex items-center gap-1 z-10 bg-[#121214] px-1 rounded pointer-events-none border border-[#27272a]">
-                <Music className="w-2.5 h-2.5 text-zinc-400" /> BG_MUSIC
-              </span>
-
-              <div className="w-full h-3 bg-zinc-900 rounded border border-[#27272a] relative flex items-center">
-                {speechIntervals.map((interval, idx) => {
-                  const leftPct = (interval.start / totalDuration) * 100;
-                  const widthPct = ((interval.end - interval.start) / totalDuration) * 100;
-                  return (
-                    <div
-                      key={idx}
-                      style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
-                      className="absolute h-1 bg-zinc-600 border-t border-b border-zinc-500 rounded flex items-center justify-center"
-                      title="Auto-Ducking: -16 dB during speech"
-                    >
-                      <span className="text-[7px] text-zinc-200 font-mono leading-none">
-                        -16dB
+                  {/* ======================================================= */}
+                  {/* TRACK TYPE: VOICE OVER (VO_TRACK)                       */}
+                  {/* ======================================================= */}
+                  {track.id === 'audio_vo' && (
+                    <div className="w-full h-full relative flex items-center">
+                      <span className="absolute left-1 text-[8px] font-medium text-zinc-400 uppercase tracking-tighter flex items-center gap-1 z-10 bg-[#121214] px-1 rounded pointer-events-none border border-[#27272a]">
+                        <Mic className="w-2.5 h-2.5" /> VO
                       </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
 
-            {/* PLAYHEAD SCRUBBER NEEDLE */}
+                      {speechIntervals.map((interval, idx) => {
+                        const leftPct = (interval.start / totalDuration) * 100;
+                        const widthPct = ((interval.end - interval.start) / totalDuration) * 100;
+                        const isSpeakingNow = currentTime >= interval.start && currentTime <= interval.end;
+
+                        return (
+                          <div
+                            key={idx}
+                            style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                            className={`absolute h-4 rounded px-1 flex items-center transition-colors ${
+                              isSpeakingNow
+                                ? 'bg-zinc-200 text-zinc-900 font-bold'
+                                : 'bg-zinc-800 border border-zinc-700 text-zinc-300'
+                            }`}
+                          >
+                            <span className="text-[8px] font-mono truncate">Speech</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* ======================================================= */}
+                  {/* TRACK TYPE: BACKGROUND MUSIC (BG_MUSIC DUCKING)         */}
+                  {/* ======================================================= */}
+                  {track.id === 'audio_bgm' && (
+                    <div className="w-full h-full relative flex items-center px-1">
+                      <span className="absolute left-1 text-[8px] font-medium text-zinc-400 uppercase tracking-tighter flex items-center gap-1 z-10 bg-[#121214] px-1 rounded pointer-events-none border border-[#27272a]">
+                        <Music className="w-2.5 h-2.5" /> BGM
+                      </span>
+
+                      <div className="w-full h-3 bg-zinc-900 rounded border border-[#27272a] relative flex items-center">
+                        {speechIntervals.map((interval, idx) => {
+                          const leftPct = (interval.start / totalDuration) * 100;
+                          const widthPct = ((interval.end - interval.start) / totalDuration) * 100;
+                          return (
+                            <div
+                              key={idx}
+                              style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                              className="absolute h-1 bg-zinc-600 border-t border-b border-zinc-500 rounded flex items-center justify-center"
+                              title="Auto-Ducking: -16 dB during speech"
+                            >
+                              <span className="text-[7px] text-zinc-200 font-mono leading-none">
+                                -16dB
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ======================================================= */}
+                  {/* TRACK TYPE: CUSTOM AUDIO STEMS (BELOW MAIN)             */}
+                  {/* ======================================================= */}
+                  {track.type === 'audio-sfx' && (
+                    <div className="w-full h-full relative flex items-center px-1">
+                      {trackClips.length === 0 ? (
+                        <div className="text-[9px] text-zinc-600 font-mono px-2">
+                          Drop audio / SFX here (&quot;put where you want&quot;)
+                        </div>
+                      ) : (
+                        trackClips.map((clip) => {
+                          const leftPct = (clip.startTime / totalDuration) * 100;
+                          const widthPct = (clip.duration / totalDuration) * 100;
+
+                          return (
+                            <div
+                              key={clip.id}
+                              style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                              className="absolute h-5 rounded px-1.5 flex items-center justify-between text-[8px] font-mono bg-zinc-800 border border-zinc-700 text-zinc-300 group"
+                              title={`Audio: ${clip.assetId} at ${clip.startTime}s`}
+                            >
+                              <span className="font-bold truncate">[{clip.assetId}]</span>
+                              <span className="text-[7px] text-zinc-500">{clip.duration}s</span>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteClip(e, clip.id)}
+                                className="opacity-0 group-hover:opacity-100 ml-1 text-zinc-400 hover:text-red-400 cursor-pointer"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* ======================================================= */}
+            {/* SCRUBBER NEEDLE (SPANS ACROSS ALL TRACKS)               */}
+            {/* ======================================================= */}
             <div
               style={{ left: `${playheadPercent}%` }}
-              className="absolute top-0 bottom-0 w-0.5 bg-[#ededed] z-30 pointer-events-none shadow-[0_0_8px_rgba(255,255,255,0.4)]"
+              className="absolute top-0 bottom-0 w-0.5 bg-[#ededed] z-50 pointer-events-none shadow-[0_0_8px_rgba(255,255,255,0.5)]"
             >
               <div className="w-2.5 h-2.5 bg-[#ededed] rotate-45 -translate-x-1/2 -translate-y-1 rounded-xs" />
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

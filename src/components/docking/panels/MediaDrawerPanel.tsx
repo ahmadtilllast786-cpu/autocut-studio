@@ -22,6 +22,8 @@ import {
   UploadCloud,
   Sparkles,
   Layers,
+  GripVertical,
+  Upload,
 } from 'lucide-react';
 
 interface MediaDrawerPanelProps {
@@ -190,7 +192,7 @@ export function MediaDrawerPanel({
         <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 bg-[#18181b]">
           {activeTab === 'media' && (
             <>
-              {/* Monochromatic Dropzone */}
+              {/* Crystal-Clear Dropzone */}
               <div
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -202,11 +204,10 @@ export function MediaDrawerPanel({
                   setIsDragging(false);
                   handleFiles(e.dataTransfer.files);
                 }}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border border-dashed rounded-xl p-4 text-center cursor-pointer transition relative overflow-hidden ${
+                className={`border-2 border-dashed rounded-xl p-3.5 text-center transition relative overflow-hidden ${
                   isDragging
-                    ? 'border-zinc-400 bg-zinc-800/40'
-                    : 'border-[#27272a] bg-[#121214] hover:border-zinc-500 hover:bg-[#18181b]'
+                    ? 'border-zinc-300 bg-zinc-800/60 shadow-lg'
+                    : 'border-[#3f3f46] bg-[#121214] hover:border-zinc-400 hover:bg-[#18181b]/80'
                 }`}
               >
                 <input
@@ -218,32 +219,72 @@ export function MediaDrawerPanel({
                   onChange={(e) => handleFiles(e.target.files)}
                 />
                 <div className="flex flex-col items-center gap-2">
-                  <div className="w-9 h-9 rounded-full bg-[#18181b] border border-[#27272a] flex items-center justify-center text-zinc-300">
-                    <Plus className="w-4 h-4 stroke-[2]" />
+                  <div className="w-10 h-10 rounded-full bg-[#18181b] border border-[#27272a] flex items-center justify-center text-zinc-200 shadow-sm">
+                    <Upload className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-[#ededed]">
-                      Import Media Materials
+                    <div className="text-xs font-bold text-[#ededed]">
+                      Upload Videos, Photos & Audio
                     </div>
-                    <div className="text-[10px] text-zinc-500 mt-0.5">
-                      Supports: videos, audios, photos
+                    <div className="text-[10px] text-zinc-400 mt-0.5">
+                      Drag & drop your raw media files here
                     </div>
                   </div>
+
+                  {/* Format Pills */}
+                  <div className="flex items-center justify-center gap-1 flex-wrap pt-0.5">
+                    {['MP4', 'MOV', 'PNG', 'JPG', 'MP3', 'WAV'].map((ext) => (
+                      <span
+                        key={ext}
+                        className="px-1.5 py-0.5 rounded bg-[#18181b] border border-[#27272a] text-[9px] font-mono text-zinc-400"
+                      >
+                        .{ext}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Browse Files Button */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="mt-1 px-3 py-1 rounded-md text-[11px] font-semibold bg-[#27272a] hover:bg-[#3f3f46] text-[#ededed] border border-[#3f3f46] transition cursor-pointer"
+                  >
+                    Browse Files
+                  </button>
                 </div>
               </div>
 
-              {/* Asset Bin Header */}
-              <div className="flex items-center justify-between text-xs font-medium text-zinc-400 pt-1">
-                <span>Asset Bin ({assets.length})</span>
+              {/* Asset Bin Header with Draggable Instruction */}
+              <div className="flex items-center justify-between text-xs font-semibold text-zinc-300 pt-1">
+                <div className="flex items-center gap-1.5">
+                  <span>Asset Bin ({assets.length})</span>
+                  <span className="text-[10px] text-zinc-400 font-normal hidden sm:inline">
+                    • Drag onto timeline tracks
+                  </span>
+                </div>
                 <span className="text-[10px] font-mono text-zinc-500">Auto-Tagged</span>
               </div>
 
-              {/* Asset Grid List */}
+              {/* Asset Grid List (Draggable Cards) */}
               <div className="grid grid-cols-2 gap-2">
                 {assets.map((asset) => (
                   <div
                     key={asset.id}
-                    className="p-2 rounded-xl bg-[#121214] border border-[#27272a] hover:border-zinc-600 flex flex-col justify-between gap-1.5 transition group"
+                    draggable={true}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData(
+                        'application/json',
+                        JSON.stringify({
+                          assetId: asset.id,
+                          type: asset.type,
+                          duration: asset.duration,
+                          name: asset.name,
+                        })
+                      );
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    className="p-2 rounded-xl bg-[#121214] border border-[#27272a] hover:border-zinc-400 flex flex-col justify-between gap-1.5 transition group cursor-grab active:cursor-grabbing select-none"
+                    title="Drag and drop onto any timeline track"
                   >
                     {/* Thumbnail or Type Icon */}
                     <div className="h-16 w-full rounded-lg bg-[#0d0d0e] overflow-hidden flex items-center justify-center relative">
@@ -252,16 +293,25 @@ export function MediaDrawerPanel({
                         <img
                           src={asset.thumbnailUrl}
                           alt={asset.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover pointer-events-none"
                         />
                       ) : (
                         <Film className="w-6 h-6 text-zinc-600" />
                       )}
 
+                      {/* Drag Handle Indicator Pill */}
+                      <div className="absolute top-1 left-1 px-1 py-0.5 rounded bg-black/75 text-zinc-300 text-[8px] flex items-center gap-0.5 opacity-80 group-hover:opacity-100">
+                        <GripVertical className="w-2.5 h-2.5 text-zinc-400" />
+                        <span className="font-mono">DRAG</span>
+                      </div>
+
                       {/* Code Badge ([VID_01], [IMG_01], [VO_TRACK]) */}
                       <button
                         type="button"
-                        onClick={() => handleCopyTag(asset.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyTag(asset.id);
+                        }}
                         className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#0d0d0e]/90 text-zinc-200 border border-[#27272a] flex items-center gap-1 shadow cursor-pointer hover:border-zinc-400 transition"
                         title="Click to copy code tag"
                       >
@@ -276,7 +326,10 @@ export function MediaDrawerPanel({
                       {/* Delete button */}
                       <button
                         type="button"
-                        onClick={() => onDeleteAsset(asset.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteAsset(asset.id);
+                        }}
                         className="opacity-0 group-hover:opacity-100 absolute top-1 right-1 p-1 rounded bg-black/80 text-zinc-400 hover:text-red-400 transition cursor-pointer"
                         title="Delete asset"
                       >
@@ -289,7 +342,7 @@ export function MediaDrawerPanel({
                       {asset.name}
                     </div>
                     <div className="flex items-center justify-between text-[9px] font-mono text-zinc-500">
-                      <span className="uppercase">{asset.type}</span>
+                      <span className="uppercase font-semibold text-zinc-400">{asset.type}</span>
                       {asset.duration > 0 && <span>{asset.duration.toFixed(1)}s</span>}
                     </div>
                   </div>

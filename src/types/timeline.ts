@@ -72,6 +72,18 @@ export interface SubtitleSegment {
   rotation?: number;
 }
 
+export type TrackType = 'video-main' | 'overlay-broll' | 'captions' | 'audio-vo' | 'audio-bgm' | 'audio-sfx';
+
+export interface TimelineTrack {
+  id: string;
+  label: string;
+  type: TrackType;
+  position: 'above' | 'main' | 'below';
+  isCustom?: boolean;
+  isMuted?: boolean;
+  isLocked?: boolean;
+}
+
 export interface TimelineClip {
   id: string;
   assetId: string; // Must match MediaAsset.id
@@ -84,6 +96,7 @@ export interface TimelineClip {
   colorFilter: ColorFilterType;
   volume?: number; // 0 to 1 for video's native audio
   fitMode?: 'blur-pad' | 'cover'; // 9:16 adaptation
+  trackId?: string; // 'main' or 'overlay_1' or 'audio_1'
 }
 
 export interface AudioStemConfig {
@@ -103,6 +116,7 @@ export interface Timeline {
   width: number; // 1080
   height: number; // 1920
   clips: TimelineClip[];
+  tracks?: TimelineTrack[];
   voiceover?: AudioStemConfig;
   backgroundMusic?: AudioStemConfig;
   subtitles: SubtitleSegment[];
