@@ -1,52 +1,87 @@
 @import "tailwindcss";
+@import "dockview/dist/styles/dockview.css";
 
 :root {
-  --background: #09090b;
+  --background: #0d0d0f;
   --foreground: #f4f4f5;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   overflow: hidden;
+  user-select: none;
 }
 
 /* Custom sleek scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(24, 24, 27, 0.5);
+  background: #121214;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(63, 63, 70, 0.6);
+  background: #27272a;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(113, 113, 122, 0.8);
+  background: #3f3f46;
 }
 
-/* Keyframe animations for Ken Burns & Glitch */
-@keyframes kenBurnsZoomIn {
-  0% { transform: scale(1.0); }
-  100% { transform: scale(1.18); }
+/* DOCKVIEW NLE THEME OVERRIDES (#121214, #18181b, #27272a, #00e5ff) */
+.dockview-theme-dark {
+  --dv-drag-over-background-color: rgba(0, 229, 255, 0.18);
+  --dv-drag-over-border-color: #00e5ff;
+  --dv-tabs-and-actions-container-background-color: #121214;
+  --dv-activegroup-visiblepanel-tab-background-color: #18181b;
+  --dv-activegroup-hiddenpanel-tab-background-color: #121214;
+  --dv-inactivegroup-visiblepanel-tab-background-color: #18181b;
+  --dv-inactivegroup-hiddenpanel-tab-background-color: #121214;
+  --dv-tab-divider-color: #27272a;
+  --dv-separator-border: #27272a;
+  --dv-paneview-active-outline-color: #00e5ff;
+  --dv-activegroup-visiblepanel-tab-color: #ffffff;
+  --dv-activegroup-hiddenpanel-tab-color: #a1a1aa;
+  --dv-inactivegroup-visiblepanel-tab-color: #d4d4d8;
+  --dv-inactivegroup-hiddenpanel-tab-color: #71717a;
 }
 
-@keyframes kenBurnsZoomOut {
-  0% { transform: scale(1.18); }
-  100% { transform: scale(1.0); }
+.dockview-theme-dark .dockview-drop-target {
+  background: rgba(0, 229, 255, 0.15) !important;
+  border: 2px dashed #00e5ff !important;
+  box-shadow: inset 0 0 24px rgba(0, 229, 255, 0.25) !important;
+  border-radius: 8px;
 }
 
-@keyframes glitchJitter {
-  0% { transform: translate(0); }
-  20% { transform: translate(-3px, 3px); }
-  40% { transform: translate(-3px, -3px); }
-  60% { transform: translate(3px, 3px); }
-  80% { transform: translate(3px, -3px); }
-  100% { transform: translate(0); }
+.dockview-theme-dark .tab.active-tab {
+  border-bottom: 2px solid #00e5ff !important;
+  color: #00e5ff !important;
+  font-weight: 700;
+}
+
+.dockview-theme-dark .tab {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  padding: 0 12px;
+  height: 32px;
+}
+
+.dockview-theme-dark .splitview-container {
+  background-color: #18181b;
+}
+
+.dockview-theme-dark .sash.vertical,
+.dockview-theme-dark .sash.horizontal {
+  background-color: #27272a;
+  transition: background-color 0.15s;
+}
+
+.dockview-theme-dark .sash.vertical:hover,
+.dockview-theme-dark .sash.horizontal:hover {
+  background-color: #00e5ff;
 }

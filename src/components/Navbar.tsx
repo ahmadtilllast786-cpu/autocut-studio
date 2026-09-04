@@ -7,6 +7,7 @@ interface NavbarProps {
   onLoadSamples: () => void;
   onOpenSettings: () => void;
   onOpenExport: () => void;
+  onResetLayout?: () => void;
   hasClips: boolean;
   activeProvider: string;
   aspectRatio?: string;
@@ -17,6 +18,7 @@ export function Navbar({
   onLoadSamples,
   onOpenSettings,
   onOpenExport,
+  onResetLayout,
   hasClips,
   activeProvider,
   aspectRatio = '9:16',
@@ -58,6 +60,18 @@ export function Navbar({
 
       {/* Action Buttons */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {onResetLayout && (
+          <button
+            type="button"
+            onClick={onResetLayout}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] hover:border-[#00e5ff]/50 transition cursor-pointer"
+            title="Reset workspace panels to default 4-quadrant docking layout"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-[#00e5ff]" />
+            <span className="hidden sm:inline">Reset Layout</span>
+          </button>
+        )}
+
         <button
           type="button"
           onClick={onLoadSamples}
