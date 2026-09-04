@@ -208,8 +208,13 @@ export default function AutoCutStudioPage() {
         />
       </footer>
 
-      {/* 4. Self-Code Diagnostic Dead-Code Detection Badge */}
-      <SelfCodeDiagnostic />
+      {/* 4. Self-Code Feature Analyzer Diagnostic Badge & Crawler */}
+      <SelfCodeDiagnostic
+        timeline={timeline}
+        assets={assets}
+        settings={settings}
+        currentTime={currentTime}
+      />
 
       {/* Settings Modal */}
       <SettingsModal
